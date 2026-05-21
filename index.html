@@ -10,6 +10,34 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<!-- Firebase SDK (compat v9) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  // ══════════════════════════════════════════════════════════
+  // FIREBASE CONFIG — replace with your project's values
+  // Get these from: Firebase Console → Project Settings → Your Apps
+  // ══════════════════════════════════════════════════════════
+  const FIREBASE_CONFIG = {
+    apiKey:            "AIzaSyBO9wOqdMIb8ahv7xGHD11atH_JtuZ-PvQ",
+    authDomain:        "ca-final-tracker-bb0d3.firebaseapp.com",
+    databaseURL:       "https://ca-final-tracker-bb0d3-default-rtdb.firebaseio.com",
+    projectId:         "ca-final-tracker-bb0d3",
+    storageBucket:     "ca-final-tracker-bb0d3.firebasestorage.app",
+    messagingSenderId: "217509938562",
+    appId:            "1:217509938562:web:48413f1fb7de1a26787b9b"
+  };
+
+  // Initialise Firebase only when config looks real
+  const _fbConfigured = Object.values(FIREBASE_CONFIG).every(v => !v.startsWith("REPLACE_"));
+  if (_fbConfigured) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    window._db = firebase.database();
+  } else {
+    console.warn("⚠️  Firebase not configured — using localStorage only. Cross-device sync disabled.");
+    window._db = null;
+  }
+</script>
 <style>
   /* ── CSS Variables: Light & Dark ── */
   :root {
@@ -439,21 +467,48 @@ const SUBJECT_DEFS = [
 ];
 
 // ──────────────────────────────────────────────────────────
-// STORAGE LAYER
+// STORAGE LAYER  (Firebase Realtime DB + localStorage cache)
 // ──────────────────────────────────────────────────────────
+
+// Firebase key sanitiser — Firebase paths can't contain . $ # [ ] /
+function fbKey(key) { return key.replace(/[.$#[\]/]/g, '_'); }
+
 async function sharedGet(key) {
-  try {
-    if (window.storage && typeof window.storage.get === 'function') {
-      const r = await window.storage.get(key, true);
-      if (r && r.value) return JSON.parse(r.value);
+  const fk = fbKey(key);
+  // 1. Try Firebase (cross-device, authoritative)
+  if (window._db) {
+    try {
+      const snap = await window._db.ref('cafinal/' + fk).get();
+      if (snap.exists()) {
+        const val = snap.val();
+        // Refresh local cache
+        try { localStorage.setItem('sd_' + key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(e) {}
+        return typeof val === 'string' ? JSON.parse(val) : val;
+      }
+    } catch(e) {
+      console.warn('Firebase read failed, falling back to localStorage', e);
     }
+  }
+  // 2. localStorage fallback (offline / Firebase not configured)
+  try {
+    const r = localStorage.getItem('sd_' + key);
+    if (r) return JSON.parse(r);
   } catch(e) {}
-  try { const r = localStorage.getItem('sd_' + key); if (r) return JSON.parse(r); } catch(e) {}
   return null;
 }
+
 async function sharedSet(key, value) {
   const json = JSON.stringify(value);
-  try { if (window.storage && typeof window.storage.set === 'function') await window.storage.set(key, json, true); } catch(e) {}
+  const fk = fbKey(key);
+  // 1. Write to Firebase
+  if (window._db) {
+    try {
+      await window._db.ref('cafinal/' + fk).set(json);
+    } catch(e) {
+      console.warn('Firebase write failed, saving to localStorage only', e);
+    }
+  }
+  // 2. Always keep localStorage as local cache
   try { localStorage.setItem('sd_' + key, json); } catch(e) {}
 }
 function sessionGet() {
@@ -854,6 +909,16 @@ function AuthScreen({ onLogin }) {
           </div>
         </div>
 
+        {!window._db&&(
+          <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,
+            padding:"8px 12px",marginBottom:14,display:"flex",gap:8,alignItems:"flex-start"}}>
+            <span style={{fontSize:"0.85rem",flexShrink:0}}>⚠️</span>
+            <div style={{fontSize:"0.66rem",color:"#92400e",lineHeight:1.5}}>
+              <strong>Firebase not configured.</strong> Data is saved on this device only — login will not work on other devices until you add your Firebase config to the file.
+            </div>
+          </div>
+        )}
+
         <div style={{display:"flex",flexDirection:"column",gap:11}}>
           <div>
             <label style={{fontSize:"0.72rem",fontWeight:600,color:T.secondary,display:"block",marginBottom:5}}>Username</label>
@@ -1108,9 +1173,11 @@ function TrackerApp({ user, onLogout }) {
           placeholder="Your name" autoFocus className="auth-input"
           style={{textAlign:"center",marginBottom:12}}/>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>{
+          <button onClick={async ()=>{
             if(!nameInput.trim()) return;
-            sharedSet(`user:${user.username}`,{name:nameInput.trim(),passwordHash:undefined});
+            // Load existing user record so we keep the passwordHash
+            const existing = await sharedGet(`user:${user.username}`) || {};
+            await sharedSet(`user:${user.username}`, {...existing, name:nameInput.trim()});
             sessionSet({...user,name:nameInput.trim()});
             window.location.reload();
           }}
