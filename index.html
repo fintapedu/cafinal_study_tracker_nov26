@@ -117,6 +117,55 @@
     white-space:nowrap;
   }
   .dm-toggle:hover{border-color:var(--text-muted)}
+
+  /* ── Tutorial Overlay ── */
+  @keyframes tutSlideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes tutPop{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
+  @keyframes stepDot{0%,100%{transform:scale(1)}50%{transform:scale(1.35)}}
+
+  .tut-overlay{
+    position:fixed;inset:0;z-index:9999;
+    background:rgba(10,9,8,0.72);
+    backdrop-filter:blur(8px);
+    display:flex;align-items:flex-end;justify-content:center;
+    padding:0 0 env(safe-area-inset-bottom,0);
+  }
+  .tut-card{
+    background:var(--bg-card);
+    border:1.5px solid var(--border-main);
+    border-radius:24px 24px 0 0;
+    padding:28px 24px 32px;
+    width:100%;max-width:480px;
+    box-shadow:0 -12px 48px rgba(0,0,0,0.28);
+    animation:tutSlideUp 0.32s cubic-bezier(.22,1,.36,1) both;
+    position:relative;overflow:hidden;
+  }
+  .tut-icon-wrap{
+    width:64px;height:64px;border-radius:18px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:2rem;margin:0 auto 16px;
+    animation:tutPop 0.28s cubic-bezier(.22,1,.36,1) 0.08s both;
+  }
+  .tut-step-dots{
+    display:flex;gap:6px;justify-content:center;margin-bottom:20px;
+  }
+  .tut-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--border-main);transition:all 0.2s ease;
+  }
+  .tut-dot.active{
+    width:18px;border-radius:3px;
+    background:#b45309;animation:stepDot 0.3s ease;
+  }
+  .tut-help-btn{
+    display:flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:50%;
+    border:1.5px solid var(--border-btn);
+    background:var(--bg-btn);color:var(--text-secondary);
+    font-size:0.75rem;font-weight:700;cursor:pointer;
+    transition:all 0.18s ease;flex-shrink:0;
+  }
+  .tut-help-btn:hover{border-color:#b45309;color:#b45309}
 </style>
 </head>
 <body>
@@ -516,6 +565,197 @@ const DarkToggle = () => {
 };
 
 // ──────────────────────────────────────────────────────────
+// TUTORIAL OVERLAY
+// ──────────────────────────────────────────────────────────
+const TUTORIAL_STEPS = [
+  {
+    icon:"📚", iconBg:"linear-gradient(135deg,#1c1917,#2d2522)", iconColor:"#d4a853",
+    title:"Welcome to CA Final Tracker!",
+    desc:"This quick guide will walk you through all the key features. You can revisit it anytime by tapping the ❓ button in the header.",
+    tip:null,
+  },
+  {
+    icon:"📅", iconBg:"linear-gradient(135deg,#eff6ff,#dbeafe)", iconColor:"#2563EB",
+    title:"Countdown & Exam Date",
+    desc:"The big number on the dashboard is your days left until the exam. Tap the date label to switch your target exam attempt (Nov '26, May '27, etc.).",
+    tip:"💡 Set the right exam date so your countdown is accurate!",
+  },
+  {
+    icon:"🔥", iconBg:"linear-gradient(135deg,#fff7ed,#ffedd5)", iconColor:"#ea580c",
+    title:"Study Streak",
+    desc:"Every day you mark progress, your streak grows. The heatmap shows your active study days over the last 12 weeks. Keep the flame alive!",
+    tip:"💡 Even marking one chapter counts as an active day.",
+  },
+  {
+    icon:"📊", iconBg:"linear-gradient(135deg,#ecfdf5,#d1fae5)", iconColor:"#047857",
+    title:"Overall Progress Ring",
+    desc:"The ring chart shows your total completion across all 6 papers. Below it you'll see counts for Done ✓, In Progress ⟳, and chapters still left.",
+    tip:null,
+  },
+  {
+    icon:"📂", iconBg:"linear-gradient(135deg,#f5f3ff,#ede9fe)", iconColor:"#7C3AED",
+    title:"Subject Cards",
+    desc:"The dashboard lists all 6 CA Final papers with a progress bar and percentage. Tap any card to open its chapters and start tracking.",
+    tip:"💡 Each paper is colour-coded for easy identification.",
+  },
+  {
+    icon:"✅", iconBg:"linear-gradient(135deg,#ecfdf5,#d1fae5)", iconColor:"#059669",
+    title:"Chapter Status",
+    desc:"Inside a subject, every chapter has a status badge. Tap it to cycle through:\n○ Pending → ⟳ In Progress → ✓ Done\nYour progress updates instantly.",
+    tip:"💡 Marking a chapter done adds it to your overall ring!",
+  },
+  {
+    icon:"🚦", iconBg:"linear-gradient(135deg,#fef2f2,#fee2e2)", iconColor:"#b91c1c",
+    title:"Priority Flags",
+    desc:"Each chapter also has a priority flag — 🔴 High, 🟡 Medium, or 🔵 Low. Tap the flag to rotate it. Use filters to focus on High-priority topics.",
+    tip:"💡 Set 🔴 High on weak areas so they stay on top of your list.",
+  },
+  {
+    icon:"🎓", iconBg:"linear-gradient(135deg,#fffbeb,#fef3c7)", iconColor:"#b45309",
+    title:"Class Attended Toggle",
+    desc:"The graduation cap 🎓 toggles whether you've attended the lecture for that chapter. Each module shows a class attendance count at the top.",
+    tip:null,
+  },
+  {
+    icon:"📝", iconBg:"linear-gradient(135deg,#f0fdf4,#dcfce7)", iconColor:"#16a34a",
+    title:"Revision Notes",
+    desc:"Tap the 📝 note icon on any chapter to write personal notes — mnemonics, case laws, key points, anything you want to remember.",
+    tip:"💡 A blue dot appears on the note icon when a note has been saved.",
+  },
+  {
+    icon:"🔍", iconBg:"linear-gradient(135deg,#fafaf9,#f5f5f4)", iconColor:"#57534e",
+    title:"Search & Filters",
+    desc:"Use the search bar at the top of any subject view to find chapters instantly. The filter bar lets you narrow by status (Done/In Progress/Pending), priority, or class attendance.",
+    tip:null,
+  },
+  {
+    icon:"🌙", iconBg:"linear-gradient(135deg,#1c1917,#292524)", iconColor:"#d4a853",
+    title:"Dark Mode",
+    desc:"Toggle Dark / Light mode using the moon/sun button in the top-right corner. Your preference is saved automatically across sessions.",
+    tip:"💡 Dark mode is easier on the eyes during late-night study sessions!",
+  },
+  {
+    icon:"🔗", iconBg:"linear-gradient(135deg,#ecfeff,#cffafe)", iconColor:"#0e7490",
+    title:"Quick Links",
+    desc:"Switch to the 'Links' tab on the dashboard to access curated study resources — ICAI BOS portal, revision materials, and more, all in one place.",
+    tip:null,
+  },
+  {
+    icon:"🎉", iconBg:"linear-gradient(135deg,#fffbeb,#fef3c7)", iconColor:"#b45309",
+    title:"You're all set!",
+    desc:"You now know everything you need to ace your CA Final revision. Remember — consistency beats perfection. Start today and keep going!",
+    tip:"📌 This tutorial is available anytime via the ❓ button.",
+  },
+];
+
+function TutorialOverlay({ onClose, username }) {
+  const {darkMode:dm} = useContext(ThemeContext);
+  const T = getT(dm);
+  const [step, setStep] = useState(0);
+  const total = TUTORIAL_STEPS.length;
+  const s = TUTORIAL_STEPS[step];
+  const isLast = step === total - 1;
+
+  const markSeen = () => {
+    try { localStorage.setItem(`cafinal_tutorial_seen:${username}`, "1"); } catch(e) {}
+  };
+
+  const handleNext = () => {
+    if (isLast) { markSeen(); onClose(); }
+    else setStep(n => n + 1);
+  };
+  const handleSkip = () => { markSeen(); onClose(); };
+  const handleBack = () => setStep(n => n - 1);
+
+  // Split desc on \n for multi-line
+  const descLines = s.desc.split("\n");
+
+  return (
+    <div className="tut-overlay" onClick={e => { if(e.target===e.currentTarget){markSeen();onClose();} }}>
+      <div className="tut-card" style={{background:T.card,borderColor:T.border,transition:"background 0.25s,border-color 0.25s"}}>
+        {/* Decorative background blur blob */}
+        <div style={{position:"absolute",top:-40,right:-40,width:160,height:160,borderRadius:"50%",
+          background:"radial-gradient(circle,rgba(180,83,9,0.07) 0%,transparent 70%)",pointerEvents:"none"}}/>
+
+        {/* Step dots */}
+        <div className="tut-step-dots">
+          {Array.from({length:total}).map((_,i)=>(
+            <div key={i} className={`tut-dot${i===step?" active":""}`}
+              onClick={()=>setStep(i)} style={{cursor:"pointer"}}/>
+          ))}
+        </div>
+
+        {/* Icon */}
+        <div className="tut-icon-wrap" style={{background:s.iconBg,border:`1.5px solid ${s.iconColor}22`}}>
+          {s.icon}
+        </div>
+
+        {/* Step counter */}
+        <div style={{textAlign:"center",fontSize:"0.6rem",fontWeight:700,color:T.muted,
+          letterSpacing:"0.12em",textTransform:"uppercase",marginBottom:8}}>
+          Step {step+1} of {total}
+        </div>
+
+        {/* Title */}
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.15rem",fontWeight:700,
+          color:T.primary,textAlign:"center",marginBottom:12,lineHeight:1.3,letterSpacing:"-0.3px"}}>
+          {s.title}
+        </div>
+
+        {/* Description */}
+        <div style={{fontSize:"0.84rem",color:T.secondary,textAlign:"center",
+          lineHeight:1.65,marginBottom:s.tip?12:22}}>
+          {descLines.map((line,i)=>(
+            <span key={i}>{line}{i<descLines.length-1&&<><br/><br/></>}</span>
+          ))}
+        </div>
+
+        {/* Tip */}
+        {s.tip && (
+          <div style={{background:dm?"rgba(180,83,9,0.13)":"#fffbeb",
+            border:`1px solid ${dm?"rgba(212,168,83,0.22)":"#fde68a"}`,
+            borderRadius:10,padding:"9px 13px",marginBottom:22,
+            fontSize:"0.76rem",color:dm?"#fef3c7":"#78350f",lineHeight:1.5,textAlign:"center"}}>
+            {s.tip}
+          </div>
+        )}
+
+        {/* Navigation buttons */}
+        <div style={{display:"flex",gap:8}}>
+          {step > 0 && (
+            <button onClick={handleBack}
+              style={{flex:"0 0 auto",background:T.btn,color:T.secondary,
+                border:`1.5px solid ${T.borderBtn}`,borderRadius:12,
+                padding:"11px 16px",cursor:"pointer",fontSize:"0.83rem",fontWeight:500,
+                fontFamily:"'DM Sans',sans-serif",transition:"all 0.15s"}}>
+              ← Back
+            </button>
+          )}
+          <button onClick={handleNext}
+            style={{flex:1,background:"linear-gradient(135deg,#b45309,#92400e)",
+              color:"#fff",border:"none",borderRadius:12,
+              padding:"12px",cursor:"pointer",fontWeight:700,fontSize:"0.9rem",
+              fontFamily:"'DM Sans',sans-serif",
+              boxShadow:"0 4px 14px rgba(180,83,9,0.35)",transition:"all 0.15s"}}>
+            {isLast ? "🚀 Start Tracking!" : "Next →"}
+          </button>
+        </div>
+
+        {/* Skip link */}
+        {!isLast && (
+          <button onClick={handleSkip}
+            style={{display:"block",width:"100%",marginTop:12,background:"none",border:"none",
+              color:T.muted,fontSize:"0.72rem",cursor:"pointer",
+              fontFamily:"'DM Sans',sans-serif",padding:"4px 0"}}>
+            Skip tutorial
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
 // AUTH SCREEN
 // ──────────────────────────────────────────────────────────
 function AuthScreen({ onLogin }) {
@@ -730,6 +970,9 @@ function TrackerApp({ user, onLogout }) {
   const [reorderMode, setReorderMode] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(() => {
+    try { return !localStorage.getItem(`cafinal_tutorial_seen:${user.username}`); } catch(e) { return false; }
+  });
   const [dashTab, setDashTab] = useState("subjects"); // "subjects" | "links"
   const [examDate, setExamDate] = useState(() => {
     try { return localStorage.getItem('cafinal_examdate') || "2026-11-01"; } catch(e) { return "2026-11-01"; }
@@ -954,8 +1197,11 @@ function TrackerApp({ user, onLogout }) {
             </div>
           </div>
           <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"flex-end"}}>
-            {/* Dark toggle */}
-            <DarkToggle/>
+            {/* Dark toggle + Help row */}
+            <div style={{display:"flex",gap:6,alignItems:"center"}}>
+              <DarkToggle/>
+              <button className="tut-help-btn" onClick={()=>setShowTutorial(true)} title="Open Tutorial">❓</button>
+            </div>
             <button onClick={()=>{setNameInput(user.name);setEditingName(true);}}
               style={{background:T.btn,border:`1.5px solid ${T.borderBtn}`,borderRadius:8,
                 padding:"4px 10px",fontSize:"0.64rem",color:T.subtle,cursor:"pointer",
@@ -1370,6 +1616,7 @@ function TrackerApp({ user, onLogout }) {
 
       {editingName&&<EditNameModal/>}
       {logoutConfirm&&<LogoutModal/>}
+      {showTutorial&&<TutorialOverlay onClose={()=>setShowTutorial(false)} username={user.username}/>}
     </div>
   );
 
@@ -1524,6 +1771,7 @@ function TrackerApp({ user, onLogout }) {
               animation:"pulse 1s ease infinite"}}>Saving…</span>}
             {/* Dark toggle in subject view */}
             <DarkToggle/>
+            <button className="tut-help-btn" onClick={()=>setShowTutorial(true)} title="Open Tutorial">❓</button>
             <button onClick={()=>{setReorderMode(r=>!r);setFilter("all");setFilterPri("all");setFilterClass("all");}}
               style={{background:reorderMode?subject.color:T.btn,
                 color:reorderMode?"#fff":T.secondary,
@@ -1655,6 +1903,7 @@ function TrackerApp({ user, onLogout }) {
 
       {editingName&&<EditNameModal/>}
       {logoutConfirm&&<LogoutModal/>}
+      {showTutorial&&<TutorialOverlay onClose={()=>setShowTutorial(false)} username={user.username}/>}
 
       {/* Note Modal */}
       {noteModal&&(
