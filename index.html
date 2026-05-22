@@ -1040,6 +1040,162 @@ function AuthScreen({ onLogin }) {
 // ──────────────────────────────────────────────────────────
 // TRACKER APP
 // ──────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────
+// PLANS TAB COMPONENT
+// ──────────────────────────────────────────────────────────
+function PlansTab() {
+  const {darkMode:dm} = useContext(ThemeContext);
+  const T = getT(dm);
+  const [billing, setBilling] = useState("monthly");
+
+  const prices = {
+    monthly: { starter:"Free", pro:"₹59", premium:"₹99" },
+    yearly:  { starter:"Free", pro:"₹700", premium:"₹1100" },
+  };
+  const period = { monthly:"/month", yearly:"/year" };
+
+  const PLANS = [
+    {
+      key:"starter", name:"Free", emoji:"📖",
+      desc:"For students just getting started.",
+      features:["Track all 6 CA Final subjects","Basic progress dashboard","Study streak heatmap","localStorage sync (single device)"],
+    },
+    {
+      key:"pro", name:"Pro", emoji:"🚀", popular:true,
+      desc:"Unlock cross-device sync & advanced tools.",
+      features:["Everything in Free","☁️ Cloud sync across all devices","Priority + class filters","Your custom Revision notes (unlimited)","🔥 Streak analytics"],
+      monthlyLink:"https://rzp.io/rzp/x3KL5GZ",
+      yearlyLink:"https://rzp.io/rzp/pU1D6Mt",
+    },
+    {
+      key:"premium", name:"Premium", emoji:"👑",
+      desc:"For the serious CA Final aspirant.",
+      features:["Everything in Pro","📊 Detailed analytics & insights","🗂️ Custom chapter grouping","📤 Export progress as PDF","Priority email support"],
+      monthlyLink:"https://rzp.io/rzp/KFtmNAtD",
+      yearlyLink:"https://rzp.io/rzp/DD8OhMnr",
+    },
+  ];
+
+  return (
+    <>
+      {/* Header */}
+      <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{fontSize:"1.6rem",marginBottom:6}}>💳</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.15rem",fontWeight:700,
+          color:T.primary,marginBottom:4,letterSpacing:"-0.3px"}}>Choose Your Plan</div>
+        <div style={{fontSize:"0.71rem",color:T.muted,lineHeight:1.5}}>
+          Unlock full access to all CA Final resources.<br/>Payments secured by Razorpay.
+        </div>
+      </div>
+
+      {/* Billing toggle */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:18}}>
+        <span style={{fontSize:"0.74rem",fontWeight:billing==="monthly"?600:400,
+          color:billing==="monthly"?T.primary:T.muted,transition:"all 0.15s"}}>Monthly</span>
+        <div onClick={()=>setBilling(b=>b==="monthly"?"yearly":"monthly")}
+          style={{width:40,height:22,borderRadius:22,cursor:"pointer",position:"relative",
+            background:billing==="yearly"?"#b45309":"#d6d3d1",transition:"background 0.2s"}}>
+          <div style={{position:"absolute",top:3,left:billing==="yearly"?19:3,width:16,height:16,
+            borderRadius:"50%",background:"#fff",transition:"left 0.2s",
+            boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}/>
+        </div>
+        <span style={{fontSize:"0.74rem",fontWeight:billing==="yearly"?600:400,
+          color:billing==="yearly"?T.primary:T.muted,transition:"all 0.15s"}}>Yearly</span>
+        <span style={{fontSize:"0.62rem",background:dm?"rgba(180,83,9,0.22)":"#fffbeb",
+          color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
+          padding:"2px 8px",fontWeight:600}}>Save 33%</span>
+      </div>
+
+      {/* Plan cards */}
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {PLANS.map(plan=>{
+          const isPopular = plan.popular;
+          const link = plan.key==="starter" ? "#" : (billing==="monthly" ? plan.monthlyLink : plan.yearlyLink);
+          return (
+            <div key={plan.key} style={{
+              background:T.card,
+              border:isPopular?`2px solid #b45309`:`1.5px solid ${T.border}`,
+              borderRadius:16,padding:"16px 16px 14px",
+              boxShadow:isPopular
+                ?`0 4px 20px ${dm?"rgba(180,83,9,0.25)":"rgba(180,83,9,0.12)"}`
+                :`0 1px 4px ${dm?"rgba(0,0,0,0.2)":"rgba(0,0,0,0.04)"}`,
+              position:"relative",transition:"all 0.25s",
+            }}>
+              {isPopular&&(
+                <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",
+                  background:"#b45309",color:"#fff",fontSize:"0.62rem",fontWeight:700,
+                  padding:"3px 12px",borderRadius:20,whiteSpace:"nowrap",letterSpacing:"0.04em"}}>
+                  ⭐ Most Popular
+                </div>
+              )}
+
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                    <span style={{fontSize:"1.1rem"}}>{plan.emoji}</span>
+                    <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
+                      fontSize:"0.95rem",color:T.primary}}>{plan.name}</span>
+                  </div>
+                  <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.4}}>{plan.desc}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.2rem",
+                    fontWeight:700,color:isPopular?"#b45309":T.primary,lineHeight:1}}>
+                    {prices[billing][plan.key]}
+                  </div>
+                  {plan.key!=="starter"&&(
+                    <div style={{fontSize:"0.6rem",color:T.muted,marginTop:2}}>{period[billing]}</div>
+                  )}
+                </div>
+              </div>
+
+              <div style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginBottom:12}}>
+                {plan.features.map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
+                    <span style={{color:"#047857",fontSize:"0.75rem",marginTop:1,flexShrink:0}}>✓</span>
+                    <span style={{fontSize:"0.72rem",color:T.secondary,lineHeight:1.4}}>{f}</span>
+                  </div>
+                ))}
+              </div>
+
+              {plan.key==="starter"
+                ? <div style={{textAlign:"center",padding:"9px",fontSize:"0.77rem",
+                    fontWeight:600,color:T.muted,background:T.card2,
+                    border:`1.5px solid ${T.borderBtn}`,borderRadius:10}}>
+                    ✓ Your current plan
+                  </div>
+                : <a href={link} target="_blank" rel="noopener noreferrer"
+                    style={{display:"block",textAlign:"center",padding:"11px",
+                      fontSize:"0.82rem",fontWeight:700,textDecoration:"none",
+                      borderRadius:10,cursor:"pointer",transition:"all 0.18s",
+                      background:isPopular?"#b45309":T.cta,
+                      color:isPopular?"#fff":T.ctaText,
+                      boxShadow:isPopular?"0 3px 12px rgba(180,83,9,0.35)":"none",
+                      border:"none",fontFamily:"'DM Sans',sans-serif"}}>
+                    {billing==="monthly"
+                      ?`${plan.name} — ${prices.monthly[plan.key]}/mo →`
+                      :`${plan.name} — ${prices.yearly[plan.key]}/yr →`}
+                  </a>
+              }
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Trust strip */}
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",
+        marginTop:18,padding:"12px 0",borderTop:`1px solid ${T.border}`}}>
+        {["🔒 Secured by Razorpay","🔄 Cancel anytime","🧾 GST invoice included","💳 UPI · Cards · Netbanking"].map(t=>(
+          <div key={t} style={{fontSize:"0.63rem",color:T.muted,background:T.card2,
+            border:`1px solid ${T.borderBtn}`,borderRadius:20,padding:"4px 10px"}}>
+            {t}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function TrackerApp({ user, onLogout }) {
   const userPlan = user.plan || { key: "free" };
   const {darkMode:dm} = useContext(ThemeContext);
@@ -1755,161 +1911,7 @@ function TrackerApp({ user, onLogout }) {
         {/* ── Plans Tab ── */}
         {dashTab==="plans"&&(
         <div style={{animation:"fadeUp 0.3s ease both"}}>
-
-          {/* Header */}
-          <div style={{textAlign:"center",marginBottom:20}}>
-            <div style={{fontSize:"1.6rem",marginBottom:6}}>💳</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.15rem",fontWeight:700,
-              color:T.primary,marginBottom:4,letterSpacing:"-0.3px"}}>Choose Your Plan</div>
-            <div style={{fontSize:"0.71rem",color:T.muted,lineHeight:1.5}}>
-              Unlock full access to all CA Final resources.<br/>Payments secured by Razorpay.
-            </div>
-          </div>
-
-          {/* Billing toggle */}
-          {(()=>{
-            const [billing,setBilling]=useState("monthly");
-            const prices={
-              monthly:{starter:"Free",pro:"₹59",premium:"₹99"},
-              yearly: {starter:"Free",pro:"₹700",premium:"₹1100"},
-            };
-            const period={monthly:"/month",yearly:"/year"};
-            const PLANS=[
-              {
-                key:"starter",name:"Free",emoji:"📖",
-                desc:"For students just getting started.",
-                features:["Track all 6 CA Final subjects","Basic progress dashboard","Study streak heatmap","localStorage sync (single device)"],
-                locked:[],
-                btnLabel:"Current Plan",btnStyle:"muted",link:"#",
-              },
-              {
-                key:"pro",name:"Pro",emoji:"🚀",
-                desc:"Unlock cross-device sync & advanced tools.",
-                features:["Everything in Free","☁️ Cloud sync across all devices","Priority + class filters","Your custom Revision notes (unlimited)","🔥 Streak analytics"],
-                locked:[],
-                btnLabel:"Subscribe — "+prices[billing].pro,btnStyle:"primary",
-                monthlyLink:"https://rzp.io/rzp/x3KL5GZ",
-                yearlyLink:"https://rzp.io/rzp/pU1D6Mt",
-                popular:true,
-              },
-              {
-                key:"premium",name:"Premium",emoji:"👑",
-                desc:"For the serious CA Final aspirant.",
-                features:["Everything in Pro","📊 Detailed analytics & insights","🗂️ Custom chapter grouping","📤 Export progress as PDF","Priority email support"],
-                locked:[],
-                btnLabel:"Subscribe — "+prices[billing].premium,btnStyle:"dark",
-                monthlyLink:"https://rzp.io/rzp/KFtmNAtD",
-                yearlyLink:"https://rzp.io/rzp/DD8OhMnr",
-              },
-            ];
-            return (
-              <>
-                {/* Toggle */}
-                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:18}}>
-                  <span style={{fontSize:"0.74rem",fontWeight:billing==="monthly"?600:400,color:billing==="monthly"?T.primary:T.muted,transition:"all 0.15s"}}>Monthly</span>
-                  <div onClick={()=>setBilling(b=>b==="monthly"?"yearly":"monthly")}
-                    style={{width:40,height:22,borderRadius:22,cursor:"pointer",position:"relative",
-                      background:billing==="yearly"?"#b45309":"#d6d3d1",transition:"background 0.2s"}}>
-                    <div style={{position:"absolute",top:3,left:billing==="yearly"?19:3,width:16,height:16,
-                      borderRadius:"50%",background:"#fff",transition:"left 0.2s",
-                      boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}/>
-                  </div>
-                  <span style={{fontSize:"0.74rem",fontWeight:billing==="yearly"?600:400,color:billing==="yearly"?T.primary:T.muted,transition:"all 0.15s"}}>Yearly</span>
-                  <span style={{fontSize:"0.62rem",background:dm?"rgba(180,83,9,0.22)":"#fffbeb",
-                    color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
-                    padding:"2px 8px",fontWeight:600}}>Save 33%</span>
-                </div>
-
-                {/* Plan cards */}
-                <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                  {PLANS.map(plan=>{
-                    const isPopular = plan.popular;
-                    const link = plan.key==="starter"?"#":(billing==="monthly"?plan.monthlyLink:plan.yearlyLink);
-                    return (
-                      <div key={plan.key} style={{
-                        background:T.card,
-                        border:isPopular?`2px solid #b45309`:`1.5px solid ${T.border}`,
-                        borderRadius:16,padding:"16px 16px 14px",
-                        boxShadow:isPopular
-                          ?`0 4px 20px ${dm?"rgba(180,83,9,0.25)":"rgba(180,83,9,0.12)"}`
-                          :`0 1px 4px ${dm?"rgba(0,0,0,0.2)":"rgba(0,0,0,0.04)"}`,
-                        position:"relative",transition:"all 0.25s"
-                      }}>
-                        {isPopular&&(
-                          <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",
-                            background:"#b45309",color:"#fff",fontSize:"0.62rem",fontWeight:700,
-                            padding:"3px 12px",borderRadius:20,whiteSpace:"nowrap",letterSpacing:"0.04em"}}>
-                            ⭐ Most Popular
-                          </div>
-                        )}
-
-                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                          <div>
-                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-                              <span style={{fontSize:"1.1rem"}}>{plan.emoji}</span>
-                              <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
-                                fontSize:"0.95rem",color:T.primary}}>{plan.name}</span>
-                            </div>
-                            <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.4}}>{plan.desc}</div>
-                          </div>
-                          <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
-                            <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.2rem",
-                              fontWeight:700,color:isPopular?"#b45309":T.primary,lineHeight:1}}>
-                              {prices[billing][plan.key]}
-                            </div>
-                            {plan.key!=="starter"&&(
-                              <div style={{fontSize:"0.6rem",color:T.muted,marginTop:2}}>{period[billing]}</div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginBottom:12}}>
-                          {plan.features.map(f=>(
-                            <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
-                              <span style={{color:"#047857",fontSize:"0.75rem",marginTop:1,flexShrink:0}}>✓</span>
-                              <span style={{fontSize:"0.72rem",color:T.secondary,lineHeight:1.4}}>{f}</span>
-                            </div>
-                          ))}
-                        </div>
-
-                        {plan.key==="starter"
-                          ? <div style={{textAlign:"center",padding:"9px",fontSize:"0.77rem",
-                              fontWeight:600,color:T.muted,background:T.card2,
-                              border:`1.5px solid ${T.borderBtn}`,borderRadius:10}}>
-                              ✓ Your current plan
-                            </div>
-                          : <a href={link} target="_blank" rel="noopener noreferrer"
-                              style={{display:"block",textAlign:"center",padding:"11px",
-                                fontSize:"0.82rem",fontWeight:700,textDecoration:"none",
-                                borderRadius:10,cursor:"pointer",transition:"all 0.18s",
-                                background:isPopular?"#b45309":T.cta,
-                                color:isPopular?"#fff":T.ctaText,
-                                boxShadow:isPopular?"0 3px 12px rgba(180,83,9,0.35)":"none",
-                                border:"none",fontFamily:"'DM Sans',sans-serif"}}>
-                              {billing==="monthly"
-                                ?`${plan.name} — ${prices.monthly[plan.key]}/mo →`
-                                :`${plan.name} — ${prices.yearly[plan.key]}/yr →`}
-                            </a>
-                        }
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Trust strip */}
-                <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",
-                  marginTop:18,padding:"12px 0",borderTop:`1px solid ${T.border}`}}>
-                  {["🔒 Secured by Razorpay","🔄 Cancel anytime","🧾 GST invoice included","💳 UPI · Cards · Netbanking"].map(t=>(
-                    <div key={t} style={{fontSize:"0.63rem",color:T.muted,background:T.card2,
-                      border:`1px solid ${T.borderBtn}`,borderRadius:20,padding:"4px 10px"}}>
-                      {t}
-                    </div>
-                  ))}
-                </div>
-              </>
-            );
-          })()}
-
+          <PlansTab/>
         </div>
         )}
 
