@@ -464,6 +464,28 @@ const SUBJECT_DEFS = [
           "Ch 14 | Case Study",
         ]},
     ]},
+
+  // ── IBS: Integrated Business Solutions ──
+  { id:"ibs", name:"Integrated Business Solutions", short:"IBS", color:"#0F766E", light:"#f0fdfa", text:"#0f766e",
+    sets:[
+      { id:"mcq", name:"MCQs — RTP / MTP / MCQ Booklet", timeWindow:"FR · Audit · AFM · DT · IDT",
+        chapters:[
+          "FR | MCQ Booklet — Financial Reporting",
+          "Audit | MCQ Booklet — Advanced Auditing & Professional Ethics",
+          "AFM | MCQ Booklet — Advanced Financial Management",
+          "DT | MCQ Booklet — Direct Tax Laws & International Taxation",
+          "IDT | MCQ Booklet — Indirect Tax Laws",
+        ]},
+      { id:"practice", name:"Practice Papers & Study Material", timeWindow:"RTP · MTP · Booklets",
+        chapters:[
+          "RTP of Current Attempt — Integrated Business Solutions",
+          "MTP of Current Attempt — Integrated Business Solutions",
+          "RTP of Past Attempts — Integrated Business Solutions",
+          "MTP of Past Attempts — Integrated Business Solutions",
+          "Case Scenario Booklet — Integrated Business Solutions",
+          "Case Study Digest — Integrated Business Solutions",
+        ]},
+    ]},
 ];
 
 // ──────────────────────────────────────────────────────────
@@ -1685,6 +1707,7 @@ function TrackerApp({ user, onLogout }) {
           ))}
         </div>
         )}
+
       </div>
 
       {editingName&&<EditNameModal/>}
