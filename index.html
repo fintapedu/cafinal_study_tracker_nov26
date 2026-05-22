@@ -1041,6 +1041,7 @@ function AuthScreen({ onLogin }) {
 // TRACKER APP
 // ──────────────────────────────────────────────────────────
 function TrackerApp({ user, onLogout }) {
+  const userPlan = user.plan || { key: "free" };
   const {darkMode:dm} = useContext(ThemeContext);
   const T = getT(dm);
 
@@ -1057,9 +1058,12 @@ function TrackerApp({ user, onLogout }) {
   const [reorderMode, setReorderMode] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
   const [showTutorial, setShowTutorial] = useState(() => {
     try { return !localStorage.getItem(`cafinal_tutorial_seen:${user.username}`); } catch(e) { return false; }
   });
+  const isPro = userPlan.key === "pro" || userPlan.key === "premium";
+  const isPremium = userPlan.key === "premium";
   const [dashTab, setDashTab] = useState("subjects"); // "subjects" | "links"
   const [examDate, setExamDate] = useState(() => {
     try { return localStorage.getItem('cafinal_examdate') || "2026-11-01"; } catch(e) { return "2026-11-01"; }
@@ -1501,6 +1505,34 @@ function TrackerApp({ user, onLogout }) {
 
         {/* Streak heatmap card */}
         {(()=>{
+          if(!isPro) return (
+            <div style={{background:T.card,borderRadius:14,padding:"13px 16px",marginBottom:14,
+              border:`1.5px solid ${T.border}`,
+              boxShadow:`0 1px 4px ${dm?"rgba(0,0,0,0.2)":"rgba(0,0,0,0.04)"}`,
+              transition:"background 0.25s,border-color 0.25s"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <span style={{fontSize:"0.7rem",fontWeight:600,color:T.primary}}>🔥 Study Streak</span>
+                <span style={{fontSize:"0.6rem",background:dm?"rgba(180,83,9,0.18)":"#fffbeb",
+                  color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
+                  padding:"2px 8px",fontWeight:600}}>🔒 Pro Feature</span>
+              </div>
+              <div style={{filter:"blur(3px)",pointerEvents:"none",opacity:0.4,height:80,
+                display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <div style={{display:"flex",gap:2}}>
+                  {Array.from({length:60}).map((_,i)=>(
+                    <div key={i} style={{width:8,height:8,borderRadius:2,
+                      background:Math.random()>0.6?"#ea580c":"#e7e5e4"}}/>
+                  ))}
+                </div>
+              </div>
+              <button onClick={()=>setShowUpgrade(true)}
+                style={{width:"100%",marginTop:10,background:"#b45309",color:"#fff",border:"none",
+                  borderRadius:9,padding:"9px",cursor:"pointer",fontSize:"0.78rem",fontWeight:700,
+                  fontFamily:"'DM Sans',sans-serif",boxShadow:"0 2px 8px rgba(180,83,9,0.3)"}}>
+                Upgrade to Pro to unlock Streak Heatmap →
+              </button>
+            </div>
+          );
           const today = new Date(); today.setHours(0,0,0,0);
           // build 84 days (12 weeks) ending today
           const days = Array.from({length:84},(_,i)=>{
@@ -1596,14 +1628,26 @@ function TrackerApp({ user, onLogout }) {
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
             <div style={{fontSize:"0.63rem",color:T.muted}}>@{user.username} · {selectedExam.label} Candidate</div>
           </div>
-          <div style={{fontSize:"0.63rem",color:"#10b981",fontWeight:500,
-            background:"#ecfdf5",borderRadius:20,padding:"3px 9px",
-            border:"1px solid #a7f3d0",flexShrink:0}}>● Synced</div>
+          <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
+            <div style={{fontSize:"0.63rem",color:"#10b981",fontWeight:500,
+              background:"#ecfdf5",borderRadius:20,padding:"3px 9px",
+              border:"1px solid #a7f3d0"}}>● Synced</div>
+            <div style={{fontSize:"0.6rem",fontWeight:700,borderRadius:20,padding:"2px 8px",
+              border:"1px solid",
+              ...(userPlan.key==="premium"
+                ? {background:dm?"rgba(124,58,237,0.2)":"#f5f3ff",color:"#7C3AED",borderColor:"#c4b5fd"}
+                : userPlan.key==="pro"
+                  ? {background:dm?"rgba(180,83,9,0.2)":"#fffbeb",color:"#b45309",borderColor:"#fde68a"}
+                  : {background:T.btn,color:T.muted,borderColor:T.borderBtn})
+            }}>
+              {userPlan.key==="premium"?"👑 Premium":userPlan.key==="pro"?"🚀 Pro":"📖 Free"}
+            </div>
+          </div>
         </div>
 
         {/* Dashboard tabs */}
         <div style={{display:"flex",borderRadius:12,overflow:"hidden",border:`1.5px solid ${T.border}`,marginBottom:14,transition:"border-color 0.25s"}}>
-          {[["subjects","📚 Subjects"],["links","🔗 Important Links"]].map(([key,label])=>(
+          {[["subjects","📚 Subjects"],["links","🔗 Links"],["plans","💳 Plans"]].map(([key,label])=>(
             <button key={key} onClick={()=>setDashTab(key)}
               className={`tab-btn ${dashTab===key?"active":"inactive"}`}
               style={{fontSize:"0.76rem",letterSpacing:"0.01em"}}>
@@ -1708,11 +1752,220 @@ function TrackerApp({ user, onLogout }) {
         </div>
         )}
 
+        {/* ── Plans Tab ── */}
+        {dashTab==="plans"&&(
+        <div style={{animation:"fadeUp 0.3s ease both"}}>
+
+          {/* Header */}
+          <div style={{textAlign:"center",marginBottom:20}}>
+            <div style={{fontSize:"1.6rem",marginBottom:6}}>💳</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.15rem",fontWeight:700,
+              color:T.primary,marginBottom:4,letterSpacing:"-0.3px"}}>Choose Your Plan</div>
+            <div style={{fontSize:"0.71rem",color:T.muted,lineHeight:1.5}}>
+              Unlock full access to all CA Final resources.<br/>Payments secured by Razorpay.
+            </div>
+          </div>
+
+          {/* Billing toggle */}
+          {(()=>{
+            const [billing,setBilling]=useState("monthly");
+            const prices={
+              monthly:{starter:"Free",pro:"₹59",premium:"₹99"},
+              yearly: {starter:"Free",pro:"₹700",premium:"₹1100"},
+            };
+            const period={monthly:"/month",yearly:"/year"};
+            const PLANS=[
+              {
+                key:"starter",name:"Free",emoji:"📖",
+                desc:"For students just getting started.",
+                features:["Track all 6 CA Final subjects","Basic progress dashboard","Study streak heatmap","localStorage sync (single device)"],
+                locked:[],
+                btnLabel:"Current Plan",btnStyle:"muted",link:"#",
+              },
+              {
+                key:"pro",name:"Pro",emoji:"🚀",
+                desc:"Unlock cross-device sync & advanced tools.",
+                features:["Everything in Free","☁️ Cloud sync across all devices","Priority + class filters","Your custom Revision notes (unlimited)","🔥 Streak analytics"],
+                locked:[],
+                btnLabel:"Subscribe — "+prices[billing].pro,btnStyle:"primary",
+                monthlyLink:"https://rzp.io/rzp/x3KL5GZ",
+                yearlyLink:"https://rzp.io/rzp/pU1D6Mt",
+                popular:true,
+              },
+              {
+                key:"premium",name:"Premium",emoji:"👑",
+                desc:"For the serious CA Final aspirant.",
+                features:["Everything in Pro","📊 Detailed analytics & insights","🗂️ Custom chapter grouping","📤 Export progress as PDF","Priority email support"],
+                locked:[],
+                btnLabel:"Subscribe — "+prices[billing].premium,btnStyle:"dark",
+                monthlyLink:"https://rzp.io/rzp/KFtmNAtD",
+                yearlyLink:"https://rzp.io/rzp/DD8OhMnr",
+              },
+            ];
+            return (
+              <>
+                {/* Toggle */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:18}}>
+                  <span style={{fontSize:"0.74rem",fontWeight:billing==="monthly"?600:400,color:billing==="monthly"?T.primary:T.muted,transition:"all 0.15s"}}>Monthly</span>
+                  <div onClick={()=>setBilling(b=>b==="monthly"?"yearly":"monthly")}
+                    style={{width:40,height:22,borderRadius:22,cursor:"pointer",position:"relative",
+                      background:billing==="yearly"?"#b45309":"#d6d3d1",transition:"background 0.2s"}}>
+                    <div style={{position:"absolute",top:3,left:billing==="yearly"?19:3,width:16,height:16,
+                      borderRadius:"50%",background:"#fff",transition:"left 0.2s",
+                      boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}/>
+                  </div>
+                  <span style={{fontSize:"0.74rem",fontWeight:billing==="yearly"?600:400,color:billing==="yearly"?T.primary:T.muted,transition:"all 0.15s"}}>Yearly</span>
+                  <span style={{fontSize:"0.62rem",background:dm?"rgba(180,83,9,0.22)":"#fffbeb",
+                    color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
+                    padding:"2px 8px",fontWeight:600}}>Save 33%</span>
+                </div>
+
+                {/* Plan cards */}
+                <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                  {PLANS.map(plan=>{
+                    const isPopular = plan.popular;
+                    const link = plan.key==="starter"?"#":(billing==="monthly"?plan.monthlyLink:plan.yearlyLink);
+                    return (
+                      <div key={plan.key} style={{
+                        background:T.card,
+                        border:isPopular?`2px solid #b45309`:`1.5px solid ${T.border}`,
+                        borderRadius:16,padding:"16px 16px 14px",
+                        boxShadow:isPopular
+                          ?`0 4px 20px ${dm?"rgba(180,83,9,0.25)":"rgba(180,83,9,0.12)"}`
+                          :`0 1px 4px ${dm?"rgba(0,0,0,0.2)":"rgba(0,0,0,0.04)"}`,
+                        position:"relative",transition:"all 0.25s"
+                      }}>
+                        {isPopular&&(
+                          <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",
+                            background:"#b45309",color:"#fff",fontSize:"0.62rem",fontWeight:700,
+                            padding:"3px 12px",borderRadius:20,whiteSpace:"nowrap",letterSpacing:"0.04em"}}>
+                            ⭐ Most Popular
+                          </div>
+                        )}
+
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                          <div>
+                            <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                              <span style={{fontSize:"1.1rem"}}>{plan.emoji}</span>
+                              <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
+                                fontSize:"0.95rem",color:T.primary}}>{plan.name}</span>
+                            </div>
+                            <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.4}}>{plan.desc}</div>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
+                            <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.2rem",
+                              fontWeight:700,color:isPopular?"#b45309":T.primary,lineHeight:1}}>
+                              {prices[billing][plan.key]}
+                            </div>
+                            {plan.key!=="starter"&&(
+                              <div style={{fontSize:"0.6rem",color:T.muted,marginTop:2}}>{period[billing]}</div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginBottom:12}}>
+                          {plan.features.map(f=>(
+                            <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
+                              <span style={{color:"#047857",fontSize:"0.75rem",marginTop:1,flexShrink:0}}>✓</span>
+                              <span style={{fontSize:"0.72rem",color:T.secondary,lineHeight:1.4}}>{f}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {plan.key==="starter"
+                          ? <div style={{textAlign:"center",padding:"9px",fontSize:"0.77rem",
+                              fontWeight:600,color:T.muted,background:T.card2,
+                              border:`1.5px solid ${T.borderBtn}`,borderRadius:10}}>
+                              ✓ Your current plan
+                            </div>
+                          : <a href={link} target="_blank" rel="noopener noreferrer"
+                              style={{display:"block",textAlign:"center",padding:"11px",
+                                fontSize:"0.82rem",fontWeight:700,textDecoration:"none",
+                                borderRadius:10,cursor:"pointer",transition:"all 0.18s",
+                                background:isPopular?"#b45309":T.cta,
+                                color:isPopular?"#fff":T.ctaText,
+                                boxShadow:isPopular?"0 3px 12px rgba(180,83,9,0.35)":"none",
+                                border:"none",fontFamily:"'DM Sans',sans-serif"}}>
+                              {billing==="monthly"
+                                ?`${plan.name} — ${prices.monthly[plan.key]}/mo →`
+                                :`${plan.name} — ${prices.yearly[plan.key]}/yr →`}
+                            </a>
+                        }
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Trust strip */}
+                <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",
+                  marginTop:18,padding:"12px 0",borderTop:`1px solid ${T.border}`}}>
+                  {["🔒 Secured by Razorpay","🔄 Cancel anytime","🧾 GST invoice included","💳 UPI · Cards · Netbanking"].map(t=>(
+                    <div key={t} style={{fontSize:"0.63rem",color:T.muted,background:T.card2,
+                      border:`1px solid ${T.borderBtn}`,borderRadius:20,padding:"4px 10px"}}>
+                      {t}
+                    </div>
+                  ))}
+                </div>
+              </>
+            );
+          })()}
+
+        </div>
+        )}
+
       </div>
 
       {editingName&&<EditNameModal/>}
       {logoutConfirm&&<LogoutModal/>}
       {showTutorial&&<TutorialOverlay onClose={()=>setShowTutorial(false)} username={user.username}/>}
+
+      {/* Upgrade Modal */}
+      {showUpgrade&&(
+        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowUpgrade(false);}}>
+          <div style={{background:T.card,borderRadius:22,padding:"24px 22px 22px",width:"100%",maxWidth:380,
+            border:`1.5px solid ${T.border}`,
+            boxShadow:`0 24px 64px ${dm?"rgba(0,0,0,0.6)":"rgba(0,0,0,0.15)"}`,
+            animation:"scaleIn 0.18s ease",transition:"background 0.25s,border-color 0.25s",textAlign:"center"}}>
+            <div style={{fontSize:"2rem",marginBottom:8}}>🚀</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:"1.05rem",
+              color:T.primary,marginBottom:6}}>This is a Pro Feature</div>
+            <div style={{fontSize:"0.76rem",color:T.secondary,lineHeight:1.6,marginBottom:16}}>
+              Upgrade to <strong style={{color:"#b45309"}}>Pro</strong> to unlock revision notes, filters, streak heatmap, cloud sync, and more.
+            </div>
+            {[
+              {label:"📝 Revision Notes",desc:"Write notes, mnemonics & case laws per chapter"},
+              {label:"🔍 Search & Filters",desc:"Filter by status, priority & class attendance"},
+              {label:"🔥 Study Streak",desc:"Heatmap of your daily study activity"},
+              {label:"☁️ Cloud Sync",desc:"Access your tracker from any device"},
+            ].map(f=>(
+              <div key={f.label} style={{display:"flex",gap:10,alignItems:"flex-start",
+                padding:"7px 10px",borderRadius:9,marginBottom:5,
+                background:dm?"rgba(255,255,255,0.03)":"#f7f4ef",
+                border:`1px solid ${T.border}`,textAlign:"left"}}>
+                <span style={{fontSize:"0.82rem",marginTop:1}}>{f.label.split(" ")[0]}</span>
+                <div>
+                  <div style={{fontSize:"0.72rem",fontWeight:600,color:T.primary}}>{f.label.slice(f.label.indexOf(" ")+1)}</div>
+                  <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.4}}>{f.desc}</div>
+                </div>
+              </div>
+            ))}
+            <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>
+              <a href="https://rzp.io/l/your-pro-monthly-link" target="_blank" rel="noopener noreferrer"
+                style={{display:"block",padding:"13px",background:"#b45309",color:"#fff",border:"none",
+                  borderRadius:12,fontWeight:700,fontSize:"0.88rem",textDecoration:"none",
+                  boxShadow:"0 3px 14px rgba(180,83,9,0.35)",fontFamily:"'DM Sans',sans-serif"}}>
+                Upgrade to Pro — ₹299/month →
+              </a>
+              <button onClick={()=>setShowUpgrade(false)}
+                style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
+                  borderRadius:12,padding:"10px",cursor:"pointer",fontSize:"0.82rem",
+                  fontFamily:"'DM Sans',sans-serif"}}>
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -1766,19 +2019,25 @@ function TrackerApp({ user, onLogout }) {
                 style={{background:p.bg,color:p.c,border:`1px solid ${p.border}`,borderRadius:20,
                   padding:"3px 10px",fontSize:"0.66rem",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
                 {p.l}</button>
-              <button onClick={()=>{setNoteModal(id);setNoteText(state.note||"");}}
-                style={{background:state.note?(dm?subject.color+"22":subject.light):T.btn,
-                  color:state.note?subject.text:T.muted,
-                  border:`1px solid ${state.note?subject.color+"35":T.borderBtn}`,
+              <button onClick={()=>{
+                  if(!isPro){setShowUpgrade(true);return;}
+                  setNoteModal(id);setNoteText(state.note||"");
+                }}
+                style={{background:state.note&&isPro?(dm?subject.color+"22":subject.light):T.btn,
+                  color:state.note&&isPro?subject.text:isPro?T.muted:"#b45309",
+                  border:`1px solid ${state.note&&isPro?subject.color+"35":isPro?T.borderBtn:"#fde68a"}`,
                   borderRadius:20,padding:"3px 10px",fontSize:"0.66rem",cursor:"pointer",transition:"all 0.15s"}}>
-                {state.note?"📝 Note":"+ Note"}</button>
-              <button onClick={()=>setTopic(id,{classAttended:!state.classAttended})}
-                style={{background:state.classAttended?(dm?"rgba(16,185,129,0.18)":"#ecfdf5"):T.btn,
-                  color:state.classAttended?"#047857":T.muted,
-                  border:`1px solid ${state.classAttended?(dm?"rgba(16,185,129,0.4)":"#a7f3d0"):T.borderBtn}`,
+                {isPro?(state.note?"📝 Note":"+ Note"):"🔒 Notes"}</button>
+              <button onClick={()=>{
+                  if(!isPro){setShowUpgrade(true);return;}
+                  setTopic(id,{classAttended:!state.classAttended});
+                }}
+                style={{background:state.classAttended&&isPro?(dm?"rgba(16,185,129,0.18)":"#ecfdf5"):T.btn,
+                  color:state.classAttended&&isPro?"#047857":isPro?T.muted:"#b45309",
+                  border:`1px solid ${state.classAttended&&isPro?(dm?"rgba(16,185,129,0.4)":"#a7f3d0"):isPro?T.borderBtn:"#fde68a"}`,
                   borderRadius:20,padding:"3px 10px",fontSize:"0.66rem",cursor:"pointer",transition:"all 0.15s",
-                  fontWeight:state.classAttended?600:400}}>
-                {state.classAttended?"🎓 Class ✓":"🎓 Class"}</button>
+                  fontWeight:state.classAttended&&isPro?600:400}}>
+                {isPro?(state.classAttended?"🎓 Class ✓":"🎓 Class"):"🔒 Class"}</button>
               <div style={{display:"flex",gap:4,marginLeft:1}}>
                 {["r1","r2","r3"].map((rk,ri)=>{
                   const on = !!state[rk];
@@ -1894,7 +2153,20 @@ function TrackerApp({ user, onLogout }) {
       {!reorderMode&&(
         <div style={{background:T.page,borderBottom:`1px solid ${T.border}`,padding:"8px 16px 8px",
           transition:"background 0.25s,border-color 0.25s"}}>
-          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:6,paddingBottom:2}}>
+          {!isPro&&(
+            <button onClick={()=>setShowUpgrade(true)}
+              style={{display:"flex",alignItems:"center",gap:7,width:"100%",marginBottom:6,
+                background:dm?"rgba(180,83,9,0.12)":"#fffbeb",border:"1px dashed #fde68a",
+                borderRadius:9,padding:"7px 12px",cursor:"pointer",textAlign:"left",
+                fontFamily:"'DM Sans',sans-serif"}}>
+              <span style={{fontSize:"0.8rem"}}>🔒</span>
+              <span style={{fontSize:"0.7rem",color:"#b45309",fontWeight:600}}>Filters are a Pro feature</span>
+              <span style={{marginLeft:"auto",fontSize:"0.64rem",color:"#b45309",fontWeight:700,
+                background:"#fde68a",borderRadius:20,padding:"2px 8px"}}>Upgrade →</span>
+            </button>
+          )}
+          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:6,paddingBottom:2,
+            opacity:isPro?1:0.4,pointerEvents:isPro?"auto":"none"}}>
             <span style={{fontSize:"0.6rem",color:T.muted,fontWeight:600,
               letterSpacing:"0.08em",textTransform:"uppercase",
               alignSelf:"center",flexShrink:0,paddingRight:2}}>Status</span>
@@ -1911,7 +2183,8 @@ function TrackerApp({ user, onLogout }) {
               </button>
             ))}
           </div>
-          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
+          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,
+            opacity:isPro?1:0.4,pointerEvents:isPro?"auto":"none"}}>
             <span style={{fontSize:"0.6rem",color:T.muted,fontWeight:600,
               letterSpacing:"0.08em",textTransform:"uppercase",
               alignSelf:"center",flexShrink:0,paddingRight:2}}>Priority</span>
@@ -2031,6 +2304,341 @@ function TrackerApp({ user, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* Upgrade Modal (subject view) */}
+      {showUpgrade&&(
+        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowUpgrade(false);}}>
+          <div style={{background:T.card,borderRadius:22,padding:"24px 22px 22px",width:"100%",maxWidth:380,
+            border:`1.5px solid ${T.border}`,
+            boxShadow:`0 24px 64px ${dm?"rgba(0,0,0,0.6)":"rgba(0,0,0,0.15)"}`,
+            animation:"scaleIn 0.18s ease",transition:"background 0.25s,border-color 0.25s",textAlign:"center"}}>
+            <div style={{fontSize:"2rem",marginBottom:8}}>🚀</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:"1.05rem",
+              color:T.primary,marginBottom:6}}>Upgrade to Pro</div>
+            <div style={{fontSize:"0.76rem",color:T.secondary,lineHeight:1.6,marginBottom:16}}>
+              This feature requires <strong style={{color:"#b45309"}}>Pro</strong> or above. Unlock notes, filters, streak heatmap and cloud sync.
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <a href="https://rzp.io/l/your-pro-monthly-link" target="_blank" rel="noopener noreferrer"
+                style={{display:"block",padding:"13px",background:"#b45309",color:"#fff",border:"none",
+                  borderRadius:12,fontWeight:700,fontSize:"0.88rem",textDecoration:"none",
+                  boxShadow:"0 3px 14px rgba(180,83,9,0.35)",fontFamily:"'DM Sans',sans-serif"}}>
+                Upgrade to Pro — ₹299/month →
+              </a>
+              <button onClick={()=>setShowUpgrade(false)}
+                style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
+                  borderRadius:12,padding:"10px",cursor:"pointer",fontSize:"0.82rem",
+                  fontFamily:"'DM Sans',sans-serif"}}>
+                Maybe later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ──────────────────────────────────────────────────────────
+// PLAN SELECTION SCREEN
+// ──────────────────────────────────────────────────────────
+const PLAN_DEFS = [
+  {
+    key: "free",
+    name: "Free Trial",
+    emoji: "📖",
+    price: { monthly: "₹0", yearly: "₹0" },
+    period: "",
+    desc: "Get started with basic tracking.",
+    color: "#78716c",
+    features: [
+      "Track all 6 CA Final subjects",
+      "Basic chapter status (Pending / In Progress / Done)",
+      "Priority flags per chapter",
+      "Dashboard progress overview",
+    ],
+    locked: [
+      "Cloud sync across devices",
+      "Revision notes",
+      "Search & advanced filters",
+      "Study streak heatmap",
+    ],
+    btnLabel: "Start Free Trial",
+    btnStyle: "outline",
+    razorpay: null,
+  },
+  {
+    key: "pro",
+    name: "Pro",
+    emoji: "🚀",
+    price: { monthly: "₹299", yearly: "₹2,390" },
+    period: { monthly: "/month", yearly: "/year" },
+    desc: "Everything you need to ace CA Final.",
+    color: "#b45309",
+    popular: true,
+    features: [
+      "Everything in Free Trial",
+      "☁️ Cloud sync across all devices",
+      "📝 Revision notes (unlimited)",
+      "🔍 Search & advanced filters",
+      "🔥 Study streak heatmap",
+      "🎓 Class attendance tracker",
+      "Priority support",
+    ],
+    locked: [],
+    btnLabel: "Subscribe to Pro",
+    btnStyle: "amber",
+    razorpay: {
+      monthly: "https://rzp.io/l/your-pro-monthly-link",
+      yearly:  "https://rzp.io/l/your-pro-yearly-link",
+    },
+  },
+  {
+    key: "premium",
+    name: "Premium",
+    emoji: "👑",
+    price: { monthly: "₹599", yearly: "₹4,790" },
+    period: { monthly: "/month", yearly: "/year" },
+    desc: "For the most serious CA aspirant.",
+    color: "#7C3AED",
+    features: [
+      "Everything in Pro",
+      "📊 Detailed subject analytics",
+      "🗂️ Custom chapter grouping",
+      "📤 Export progress as PDF",
+      "⚡ Early access to new features",
+      "24/7 Priority email support",
+    ],
+    locked: [],
+    btnLabel: "Subscribe to Premium",
+    btnStyle: "purple",
+    razorpay: {
+      monthly: "https://rzp.io/l/your-premium-monthly-link",
+      yearly:  "https://rzp.io/l/your-premium-yearly-link",
+    },
+  },
+];
+
+function PlanSelectionScreen({ user, onPlanActivated }) {
+  const {darkMode:dm} = useContext(ThemeContext);
+  const T = getT(dm);
+
+  const [billing, setBilling] = useState("monthly");
+  const [activatingPlan, setActivatingPlan] = useState(null); // plan key after Razorpay redirect
+  const [confirming, setConfirming] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const activatePlan = async (planKey) => {
+    setLoading(true);
+    try {
+      const existing = await sharedGet(`user:${user.username}`) || {};
+      const planRecord = {
+        key: planKey,
+        billing: planKey === "free" ? "free" : billing,
+        activatedAt: Date.now(),
+        activatedBy: user.username,
+      };
+      await sharedSet(`user:${user.username}`, { ...existing, plan: planRecord });
+      const updatedUser = { ...user, plan: planRecord };
+      sessionSet(updatedUser);
+      onPlanActivated(updatedUser);
+    } catch(e) {
+      console.error("Plan activation failed", e);
+    }
+    setLoading(false);
+  };
+
+  const handlePlanClick = (plan) => {
+    if (plan.key === "free") {
+      activatePlan("free");
+      return;
+    }
+    // For paid plans: open Razorpay then show confirmation
+    const link = plan.razorpay[billing];
+    window.open(link, "_blank");
+    setActivatingPlan(plan.key);
+    setConfirming(true);
+  };
+
+  const btnColors = {
+    outline: { bg: "transparent", color: T.primary, border: `1.5px solid ${T.borderBtn}`, shadow: "none" },
+    amber:   { bg: "#b45309", color: "#fff", border: "none", shadow: "0 4px 16px rgba(180,83,9,0.35)" },
+    purple:  { bg: "#7C3AED", color: "#fff", border: "none", shadow: "0 4px 16px rgba(124,58,237,0.35)" },
+  };
+
+  return (
+    <div style={{minHeight:"100vh",background:T.page,display:"flex",flexDirection:"column",
+      alignItems:"center",justifyContent:"flex-start",padding:"20px 16px 40px",
+      transition:"background 0.25s ease"}}>
+
+      <div style={{position:"fixed",top:16,right:16,zIndex:100}}>
+        <DarkToggle/>
+      </div>
+
+      {/* Header */}
+      <div style={{textAlign:"center",marginBottom:24,marginTop:16,maxWidth:480,width:"100%"}}>
+        <div style={{fontSize:"2rem",marginBottom:8}}>🎓</div>
+        <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.4rem",fontWeight:700,
+          color:T.primary,letterSpacing:"-0.4px",lineHeight:1.2,marginBottom:6}}>
+          Welcome, {user.name}!
+        </div>
+        <div style={{fontSize:"0.78rem",color:T.secondary,lineHeight:1.6,marginBottom:4}}>
+          Choose a plan to unlock your CA Final Study Tracker.
+        </div>
+        <div style={{fontSize:"0.66rem",color:T.muted}}>
+          Payments secured by Razorpay · Cancel anytime
+        </div>
+      </div>
+
+      {/* Billing toggle */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+        <span style={{fontSize:"0.78rem",fontWeight:billing==="monthly"?600:400,
+          color:billing==="monthly"?T.primary:T.muted,transition:"all 0.15s"}}>Monthly</span>
+        <div onClick={()=>setBilling(b=>b==="monthly"?"yearly":"monthly")}
+          style={{width:44,height:24,borderRadius:24,cursor:"pointer",position:"relative",
+            background:billing==="yearly"?"#b45309":"#d6d3d1",transition:"background 0.2s",flexShrink:0}}>
+          <div style={{position:"absolute",top:3,left:billing==="yearly"?23:3,width:18,height:18,
+            borderRadius:"50%",background:"#fff",transition:"left 0.2s",
+            boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
+        </div>
+        <span style={{fontSize:"0.78rem",fontWeight:billing==="yearly"?600:400,
+          color:billing==="yearly"?T.primary:T.muted,transition:"all 0.15s"}}>Yearly</span>
+        <span style={{fontSize:"0.64rem",background:dm?"rgba(180,83,9,0.22)":"#fffbeb",
+          color:"#b45309",border:"1px solid #fde68a55",borderRadius:20,
+          padding:"3px 9px",fontWeight:700}}>Save 33%</span>
+      </div>
+
+      {/* Plan cards */}
+      <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:480}}>
+        {PLAN_DEFS.map(plan=>{
+          const bc = btnColors[plan.btnStyle];
+          const isPopular = plan.popular;
+          return (
+            <div key={plan.key} style={{
+              background:T.card,
+              border:isPopular?`2px solid #b45309`:`1.5px solid ${T.border}`,
+              borderRadius:18,padding:"18px 18px 16px",
+              boxShadow:isPopular
+                ?`0 6px 28px ${dm?"rgba(180,83,9,0.25)":"rgba(180,83,9,0.13)"}`
+                :`0 1px 6px ${dm?"rgba(0,0,0,0.25)":"rgba(0,0,0,0.06)"}`,
+              position:"relative",
+              animation:"fadeUp 0.35s ease both",
+              transition:"background 0.25s,border-color 0.25s",
+            }}>
+              {isPopular&&(
+                <div style={{position:"absolute",top:-13,left:"50%",transform:"translateX(-50%)",
+                  background:"linear-gradient(90deg,#b45309,#92400e)",color:"#fff",
+                  fontSize:"0.64rem",fontWeight:700,padding:"4px 14px",borderRadius:20,
+                  whiteSpace:"nowrap",letterSpacing:"0.05em",boxShadow:"0 2px 8px rgba(180,83,9,0.4)"}}>
+                  ⭐ Most Popular
+                </div>
+              )}
+
+              {/* Plan header */}
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+                <div>
+                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
+                    <span style={{fontSize:"1.25rem"}}>{plan.emoji}</span>
+                    <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
+                      fontSize:"1rem",color:T.primary}}>{plan.name}</span>
+                    {isPopular&&(
+                      <span style={{fontSize:"0.6rem",background:dm?"rgba(180,83,9,0.2)":"#fffbeb",
+                        color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
+                        padding:"2px 7px",fontWeight:600}}>Recommended</span>
+                    )}
+                  </div>
+                  <div style={{fontSize:"0.68rem",color:T.muted,lineHeight:1.4}}>{plan.desc}</div>
+                </div>
+                <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
+                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.3rem",fontWeight:700,
+                    color:plan.color,lineHeight:1}}>
+                    {plan.price[billing]}
+                  </div>
+                  {plan.period&&(
+                    <div style={{fontSize:"0.62rem",color:T.muted,marginTop:2}}>{plan.period[billing]}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Features */}
+              <div style={{borderTop:`1px solid ${T.border}`,paddingTop:11,marginBottom:13}}>
+                {plan.features.map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
+                    <span style={{color:"#047857",fontSize:"0.78rem",flexShrink:0,marginTop:1}}>✓</span>
+                    <span style={{fontSize:"0.73rem",color:T.secondary,lineHeight:1.4}}>{f}</span>
+                  </div>
+                ))}
+                {plan.locked.map(f=>(
+                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
+                    <span style={{color:T.borderBtn,fontSize:"0.78rem",flexShrink:0,marginTop:1}}>🔒</span>
+                    <span style={{fontSize:"0.73rem",color:T.muted,lineHeight:1.4,textDecoration:"line-through"}}>{f}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* CTA button */}
+              <button onClick={()=>!loading&&handlePlanClick(plan)}
+                style={{width:"100%",padding:"12px",fontSize:"0.85rem",fontWeight:700,
+                  fontFamily:"'DM Sans',sans-serif",borderRadius:12,cursor:loading?"default":"pointer",
+                  background:loading?T.ctaLoading:bc.bg,color:bc.color,border:bc.border,
+                  boxShadow:bc.shadow,transition:"all 0.18s",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                {loading&&activatingPlan===plan.key
+                  ? <><div className="spinner" style={{borderTopColor:bc.color=="#fff"?"#fff":"#b45309"}}/> Activating…</>
+                  : plan.key==="free"
+                    ? plan.btnLabel
+                    : `${plan.btnLabel} — ${plan.price[billing]}${plan.period?.[billing]||""}`
+                }
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Payment confirmation modal */}
+      {confirming&&(
+        <div className="modal-bg">
+          <div style={{background:T.card,borderRadius:20,padding:24,width:"100%",maxWidth:380,
+            border:`1.5px solid ${T.border}`,boxShadow:`0 24px 64px ${dm?"rgba(0,0,0,0.6)":"rgba(0,0,0,0.15)"}`,
+            textAlign:"center",animation:"scaleIn 0.18s ease",transition:"background 0.25s"}}>
+            <div style={{fontSize:"2rem",marginBottom:10}}>💳</div>
+            <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:"1rem",
+              color:T.primary,marginBottom:8}}>Complete your payment</div>
+            <div style={{fontSize:"0.76rem",color:T.secondary,lineHeight:1.6,marginBottom:6}}>
+              The Razorpay payment page has opened in a new tab. Once you've completed the payment, come back here and tap the button below.
+            </div>
+            <div style={{background:dm?"rgba(180,83,9,0.15)":"#fffbeb",border:"1px solid #fde68a",
+              borderRadius:10,padding:"9px 12px",marginBottom:18,fontSize:"0.7rem",color:"#78350f",lineHeight:1.5}}>
+              💡 Don't close this tab — your session is saved here.
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <button onClick={()=>activatePlan(activatingPlan)}
+                disabled={loading}
+                style={{background:"#047857",color:"#fff",border:"none",borderRadius:12,
+                  padding:"13px",cursor:loading?"default":"pointer",fontWeight:700,fontSize:"0.88rem",
+                  fontFamily:"'DM Sans',sans-serif",boxShadow:"0 3px 12px rgba(4,120,87,0.35)",
+                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.18s"}}>
+                {loading
+                  ? <><div className="spinner"/> Activating your plan…</>
+                  : "✓ I've Completed Payment — Activate Plan"}
+              </button>
+              <button onClick={()=>{setConfirming(false);setActivatingPlan(null);}}
+                style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
+                  borderRadius:12,padding:"11px",cursor:"pointer",fontSize:"0.82rem",
+                  fontFamily:"'DM Sans',sans-serif"}}>
+                ← Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Footer */}
+      <div style={{marginTop:24,textAlign:"center",fontSize:"0.64rem",color:T.muted,lineHeight:1.7,maxWidth:380}}>
+        🔒 Payments are processed securely by Razorpay.<br/>
+        GST invoice provided. Cancel anytime from your account.<br/>
+        <span style={{color:"#b45309",fontWeight:600}}>CA Final Tracker · by CA Avishi Gupta</span>
+      </div>
     </div>
   );
 }
@@ -2054,18 +2662,62 @@ function Root() {
     try { localStorage.setItem('cafinal_dark', darkMode); } catch(e) {}
   }, [darkMode]);
 
+  // On mount: restore session and check plan
   useEffect(() => {
     const sess = sessionGet();
     if (sess && sess.username && sess.name) {
       setCurrentUser(sess);
-      setAuthState("app");
+      // If user has no plan stored, show plan selection; otherwise go straight to app
+      if (sess.plan && sess.plan.key) {
+        setAuthState("app");
+      } else {
+        // Re-check Firebase for plan (session may be stale)
+        sharedGet(`user:${sess.username}`).then(userData => {
+          if (userData && userData.plan && userData.plan.key) {
+            const updatedUser = { ...sess, plan: userData.plan };
+            sessionSet(updatedUser);
+            setCurrentUser(updatedUser);
+            setAuthState("app");
+          } else {
+            setAuthState("plan");
+          }
+        }).catch(() => setAuthState("plan"));
+      }
     } else {
       setAuthState("auth");
     }
   }, []);
 
-  const handleLogin = user => { sessionSet(user); setCurrentUser(user); setAuthState("app"); };
-  const handleLogout = () => { setCurrentUser(null); setAuthState("auth"); };
+  const handleLogin = async (user) => {
+    // After login, check if this user already has a plan
+    try {
+      const userData = await sharedGet(`user:${user.username}`);
+      if (userData && userData.plan && userData.plan.key) {
+        const userWithPlan = { ...user, plan: userData.plan };
+        sessionSet(userWithPlan);
+        setCurrentUser(userWithPlan);
+        setAuthState("app");
+      } else {
+        sessionSet(user);
+        setCurrentUser(user);
+        setAuthState("plan");
+      }
+    } catch(e) {
+      sessionSet(user);
+      setCurrentUser(user);
+      setAuthState("plan");
+    }
+  };
+
+  const handlePlanActivated = (userWithPlan) => {
+    setCurrentUser(userWithPlan);
+    setAuthState("app");
+  };
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setAuthState("auth");
+  };
 
   const T = getT(darkMode);
 
@@ -2084,7 +2736,9 @@ function Root() {
     <ThemeContext.Provider value={{ darkMode, toggleDark }}>
       {authState==="auth"
         ? <AuthScreen onLogin={handleLogin}/>
-        : <TrackerApp user={currentUser} onLogout={handleLogout}/>
+        : authState==="plan"
+          ? <PlanSelectionScreen user={currentUser} onPlanActivated={handlePlanActivated}/>
+          : <TrackerApp user={currentUser} onLogout={handleLogout}/>
       }
     </ThemeContext.Provider>
   );
