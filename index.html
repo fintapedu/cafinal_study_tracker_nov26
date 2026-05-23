@@ -1049,9 +1049,8 @@ function PlansTab() {
   const [billing, setBilling] = useState("monthly");
 
   const prices = {
-    monthly: { starter:"Free", pro:"₹59", premium:"₹99" },
-    yearly:  { starter:"Free", pro:"₹700", premium:"₹1100" },
-    Nov26: {One_time_payment: "₹199" } 
+    monthly: { starter:"Free", pro:"₹59", premium:"₹99", One_time_payment:"₹199" },
+    yearly:  { starter:"Free", pro:"₹700", premium:"₹1100", One_time_payment:"₹199" },
   };
   const period = { monthly:"/month", yearly:"/year" };
 
@@ -1071,7 +1070,7 @@ function PlansTab() {
     {
       key:"premium", name:"Premium", emoji:"👑",
       desc:"For the serious CA Final aspirant.",
-      features:["Everything in Pro","📊 Detailed analytics & insights","🗂️ Custom chapter grouping","📤 Export progress as PDF","Priority email support"],
+      features:["Everything in Pro","📊 Detailed analytics & insights","🗂️ Custom chapter grouping","Priority email support"],
       monthlyLink:"https://rzp.io/rzp/KFtmNAtD",
       yearlyLink:"https://rzp.io/rzp/DD8OhMnr",
     },
@@ -1117,7 +1116,7 @@ function PlansTab() {
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         {PLANS.map(plan=>{
           const isPopular = plan.popular;
-          const link = plan.key==="starter" ? "#" : (billing==="monthly" ? plan.monthlyLink : plan.yearlyLink);
+          const link = plan.key==="starter" ? "#" : plan.key==="One_time_payment" ? plan.Nov26Link : (billing==="monthly" ? plan.monthlyLink : plan.yearlyLink);
           return (
             <div key={plan.key} style={{
               background:T.card,
@@ -1151,7 +1150,9 @@ function PlansTab() {
                     {prices[billing][plan.key]}
                   </div>
                   {plan.key!=="starter"&&(
-                    <div style={{fontSize:"0.6rem",color:T.muted,marginTop:2}}>{period[billing]}</div>
+                    <div style={{fontSize:"0.6rem",color:T.muted,marginTop:2}}>
+                      {plan.key==="One_time_payment" ? "one-time" : period[billing]}
+                    </div>
                   )}
                 </div>
               </div>
@@ -1179,9 +1180,11 @@ function PlansTab() {
                       color:isPopular?"#fff":T.ctaText,
                       boxShadow:isPopular?"0 3px 12px rgba(180,83,9,0.35)":"none",
                       border:"none",fontFamily:"'DM Sans',sans-serif"}}>
-                    {billing==="monthly"
-                      ?`${plan.name} — ${prices.monthly[plan.key]}/mo →`
-                      :`${plan.name} — ${prices.yearly[plan.key]}/yr →`}
+                    {plan.key==="One_time_payment"
+                      ?`${plan.name} — ₹199 one-time →`
+                      :billing==="monthly"
+                        ?`${plan.name} — ${prices.monthly[plan.key]}/mo →`
+                        :`${plan.name} — ${prices.yearly[plan.key]}/yr →`}
                   </a>
               }
             </div>
@@ -1963,7 +1966,7 @@ function TrackerApp({ user, onLogout }) {
                 style={{display:"block",padding:"13px",background:"#b45309",color:"#fff",border:"none",
                   borderRadius:12,fontWeight:700,fontSize:"0.88rem",textDecoration:"none",
                   boxShadow:"0 3px 14px rgba(180,83,9,0.35)",fontFamily:"'DM Sans',sans-serif"}}>
-                Upgrade to Pro — ₹59/month →
+                Upgrade to Pro — ₹199 →
               </a>
               <button onClick={()=>setShowUpgrade(false)}
                 style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
@@ -2332,7 +2335,7 @@ function TrackerApp({ user, onLogout }) {
                 style={{display:"block",padding:"13px",background:"#b45309",color:"#fff",border:"none",
                   borderRadius:12,fontWeight:700,fontSize:"0.88rem",textDecoration:"none",
                   boxShadow:"0 3px 14px rgba(180,83,9,0.35)",fontFamily:"'DM Sans',sans-serif"}}>
-                Upgrade to Pro — ₹299/month →
+                Upgrade to Pro — ₹199 →
               </a>
               <button onClick={()=>setShowUpgrade(false)}
                 style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
@@ -2380,9 +2383,9 @@ const PLAN_DEFS = [
     key: "pro",
     name: "Pro",
     emoji: "🚀",
-    price: { monthly: "₹59", yearly: "₹700" },
-    period: { monthly: "/month", yearly: "/year" },
-    desc: "Everything you need to ace CA Final.",
+    price: { monthly: "₹199", yearly: "₹199" },
+    period: { monthly: " one-time", yearly: " one-time" },
+    desc: "Everything you need to ace CA Final — Nov '26 batch.",
     color: "#b45309",
     popular: true,
     features: [
@@ -2423,24 +2426,6 @@ const PLAN_DEFS = [
     razorpay: {
       monthly: "https://rzp.io/l/your-premium-monthly-link",
       yearly:  "https://rzp.io/l/your-premium-yearly-link",
-    },
-  },
-    {
-    key: "Nov26",
-    name: "For Nov 2026 students",
-    emoji: "😎",
-    price: { monthly: "₹199" },
-    period: { monthly: "once"},
-    desc: "Exclusively for Nov 2026 CA Final candidates.",
-    color: "#7C3AED",
-    features: [
-      "Everything in Premium",
-    ],
-    locked: [],
-    btnLabel: "Get your tracker",
-    btnStyle: "green",
-    razorpay: {
-      monthly: "https://rzp.io/rzp/kTwIuQX",
     },
   },
 ];
