@@ -10,34 +10,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-<!-- Firebase SDK (compat v9) -->
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script>
-  // ══════════════════════════════════════════════════════════
-  // FIREBASE CONFIG — replace with your project's values
-  // Get these from: Firebase Console → Project Settings → Your Apps
-  // ══════════════════════════════════════════════════════════
-  const FIREBASE_CONFIG = {
-    apiKey:            "AIzaSyBO9wOqdMIb8ahv7xGHD11atH_JtuZ-PvQ",
-    authDomain:        "ca-final-tracker-bb0d3.firebaseapp.com",
-    databaseURL:       "https://ca-final-tracker-bb0d3-default-rtdb.firebaseio.com",
-    projectId:         "ca-final-tracker-bb0d3",
-    storageBucket:     "ca-final-tracker-bb0d3.firebasestorage.app",
-    messagingSenderId: "217509938562",
-    appId:            "1:217509938562:web:48413f1fb7de1a26787b9b"
-  };
-
-  // Initialise Firebase only when config looks real
-  const _fbConfigured = Object.values(FIREBASE_CONFIG).every(v => !v.startsWith("REPLACE_"));
-  if (_fbConfigured) {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    window._db = firebase.database();
-  } else {
-    console.warn("⚠️  Firebase not configured — using localStorage only. Cross-device sync disabled.");
-    window._db = null;
-  }
-</script>
 <style>
   /* ── CSS Variables: Light & Dark ── */
   :root {
@@ -194,6 +166,74 @@
     transition:all 0.18s ease;flex-shrink:0;
   }
   .tut-help-btn:hover{border-color:#b45309;color:#b45309}
+
+  /* ── Subscription / Plan System ── */
+  @keyframes planSlideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes payPulse{0%,100%{box-shadow:0 0 0 0 rgba(180,83,9,0.35)}50%{box-shadow:0 0 0 10px rgba(180,83,9,0)}}
+  @keyframes checkPop{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+  @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+
+  .plan-overlay{
+    position:fixed;inset:0;z-index:10000;
+    background:rgba(10,9,8,0.78);
+    backdrop-filter:blur(10px);
+    display:flex;align-items:flex-end;justify-content:center;
+  }
+  .plan-sheet{
+    background:var(--bg-card);
+    border:1.5px solid var(--border-main);
+    border-radius:28px 28px 0 0;
+    width:100%;max-width:520px;
+    max-height:92vh;overflow-y:auto;
+    box-shadow:0 -20px 60px rgba(0,0,0,0.35);
+    animation:planSlideUp 0.38s cubic-bezier(.22,1,.36,1) both;
+    padding:0 0 env(safe-area-inset-bottom,16px);
+  }
+  .plan-card-item{
+    border-radius:16px;padding:16px;
+    border:2px solid var(--border-main);
+    transition:all 0.2s ease;cursor:pointer;
+    position:relative;overflow:hidden;
+  }
+  .plan-card-item.popular{border-color:#7c3aed;}
+  .plan-card-item.active-plan{border-color:#047857;}
+  .plan-feature-row{
+    display:flex;align-items:flex-start;gap:8px;
+    font-size:0.75rem;line-height:1.5;margin-bottom:4px;
+    color:var(--text-secondary);
+  }
+  .plan-feature-row.locked{color:var(--text-muted);opacity:0.6;}
+  .plan-cta-btn{
+    width:100%;padding:13px;border-radius:12px;border:none;
+    font-family:'DM Sans',sans-serif;font-size:0.88rem;font-weight:700;
+    cursor:pointer;transition:all 0.18s ease;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .locked-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    border-radius:20px;padding:3px 10px;font-size:0.66rem;
+    cursor:pointer;transition:all 0.15s;border-width:1px;border-style:solid;
+    font-weight:600;
+  }
+  .locked-section{
+    border-radius:14px;padding:20px;text-align:center;
+    border:2px dashed var(--border-dashed);
+    background:var(--bg-card2);margin-bottom:14px;
+    cursor:pointer;transition:all 0.2s;
+  }
+  .locked-section:hover{border-color:#b45309;background:var(--bg-input);}
+  .plan-pill{
+    display:inline-flex;align-items:center;gap:4px;
+    border-radius:20px;padding:3px 10px;
+    font-size:0.65rem;font-weight:700;cursor:pointer;
+    transition:all 0.15s;border:1.5px solid;
+    white-space:nowrap;
+  }
+  .shimmer-bg{
+    background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.08) 50%,transparent 100%);
+    background-size:200% 100%;
+    animation:shimmer 1.8s infinite;
+  }
 </style>
 </head>
 <body>
@@ -465,72 +505,72 @@ const SUBJECT_DEFS = [
         ]},
     ]},
 
-  // ── IBS: Integrated Business Solutions ──
-  { id:"ibs", name:"Integrated Business Solutions", short:"IBS", color:"#0F766E", light:"#f0fdfa", text:"#0f766e",
+  // ── Paper 6C: Integrated Business Solutions ──
+  { id:"ibs", name:"Integrated Business Solutions", short:"IBS", color:"#7C2D12", light:"#fff7ed", text:"#9a3412",
+    resourceLink:{ label:"ICAI – IBS Study Material & Guidelines", url:"https://www.icai.org/post/19442" },
     sets:[
-      { id:"mcq", name:"MCQs — RTP / MTP / MCQ Booklet", timeWindow:"FR · Audit · AFM · DT · IDT",
-        chapters:[
-          "FR | MCQ Booklet — Financial Reporting",
-          "Audit | MCQ Booklet — Advanced Auditing & Professional Ethics",
-          "AFM | MCQ Booklet — Advanced Financial Management",
-          "DT | MCQ Booklet — Direct Tax Laws & International Taxation",
-          "IDT | MCQ Booklet — Indirect Tax Laws",
-        ]},
-      { id:"practice", name:"Practice Papers & Study Material", timeWindow:"RTP · MTP · Booklets",
-        chapters:[
-          "RTP of Current Attempt — Integrated Business Solutions",
-          "MTP of Current Attempt — Integrated Business Solutions",
-          "RTP of Past Attempts — Integrated Business Solutions",
-          "MTP of Past Attempts — Integrated Business Solutions",
-          "Case Scenario Booklet — Integrated Business Solutions",
-          "Case Study Digest — Integrated Business Solutions",
-        ]},
+      { id:"unit1", name:"Unit 1 – Financial Reporting & Analysis", timeWindow:"FR Integration", chapters:[
+        "Case Integration | Application of Ind AS in complex business scenarios",
+        "Case Integration | Consolidation, Business Combinations & Group Reporting",
+        "Case Integration | Financial Instruments – Classification, Measurement & Disclosures",
+        "Case Integration | Revenue Recognition (Ind AS 115) in multi-element arrangements",
+        "Case Integration | Leases (Ind AS 116) – Lessee & Lessor accounting",
+        "Case Integration | Analysis of Financial Statements – Ratio Analysis & Interpretation",
+      ]},
+      { id:"unit2", name:"Unit 2 – Strategic Financial Management", timeWindow:"AFM Integration", chapters:[
+        "Case Integration | Capital Budgeting under uncertainty & real options",
+        "Case Integration | Business Valuation – DCF, Relative Valuation & EVA",
+        "Case Integration | M&A – Synergy valuation, financing & restructuring",
+        "Case Integration | Risk Management – Hedging strategies using derivatives",
+        "Case Integration | Portfolio Management & Asset Allocation decisions",
+        "Case Integration | International Finance – Cross-border investments & exposure",
+      ]},
+      { id:"unit3", name:"Unit 3 – Advanced Auditing", timeWindow:"AAA Integration", chapters:[
+        "Case Integration | Audit Planning, Risk Assessment & Materiality",
+        "Case Integration | Internal Controls – Design, evaluation & reporting gaps",
+        "Case Integration | Forensic Accounting, Due Diligence & Investigation",
+        "Case Integration | Ethical dilemmas & Professional scepticism",
+        "Case Integration | Auditor's Report – Modifications, KAM & EOM",
+      ]},
+      { id:"unit4", name:"Unit 4 – Direct & Indirect Tax", timeWindow:"DT + IDT Integration", chapters:[
+        "Case Integration | Tax Planning for corporate restructuring & M&A",
+        "Case Integration | Transfer Pricing – Documentation & compliance",
+        "Case Integration | GST – Complex supply chains, ITC reversal & reconciliation",
+        "Case Integration | Customs & FTP – Export incentives & SEZ provisions",
+        "Case Integration | International Taxation – DTAA application & BEPS impact",
+      ]},
+      { id:"unit5", name:"Unit 5 – Corporate & Economic Laws", timeWindow:"Law Integration", chapters:[
+        "Case Integration | NCLT proceedings – Mergers, Oppression & Winding Up",
+        "Case Integration | SEBI Regulations – Takeover, Insider Trading & LODR",
+        "Case Integration | IBC – Resolution process, liquidation & claims",
+        "Case Integration | FEMA – Overseas investments & ECB regulations",
+      ]},
+      { id:"unit6", name:"Unit 6 – Strategic Cost & Performance Mgmt", timeWindow:"SCPM Integration", chapters:[
+        "Case Integration | Strategic cost analysis for new business models",
+        "Case Integration | Balanced Scorecard & KPI design for organisations",
+        "Case Integration | Transfer pricing in divisional structures",
+        "Case Integration | Standard costing & variance analysis in practice",
+        "Case Integration | Lean systems & value-chain cost management",
+      ]},
     ]},
 ];
 
 // ──────────────────────────────────────────────────────────
-// STORAGE LAYER  (Firebase Realtime DB + localStorage cache)
+// STORAGE LAYER
 // ──────────────────────────────────────────────────────────
-
-// Firebase key sanitiser — Firebase paths can't contain . $ # [ ] /
-function fbKey(key) { return key.replace(/[.$#[\]/]/g, '_'); }
-
 async function sharedGet(key) {
-  const fk = fbKey(key);
-  // 1. Try Firebase (cross-device, authoritative)
-  if (window._db) {
-    try {
-      const snap = await window._db.ref('cafinal/' + fk).get();
-      if (snap.exists()) {
-        const val = snap.val();
-        // Refresh local cache
-        try { localStorage.setItem('sd_' + key, typeof val === 'string' ? val : JSON.stringify(val)); } catch(e) {}
-        return typeof val === 'string' ? JSON.parse(val) : val;
-      }
-    } catch(e) {
-      console.warn('Firebase read failed, falling back to localStorage', e);
-    }
-  }
-  // 2. localStorage fallback (offline / Firebase not configured)
   try {
-    const r = localStorage.getItem('sd_' + key);
-    if (r) return JSON.parse(r);
+    if (window.storage && typeof window.storage.get === 'function') {
+      const r = await window.storage.get(key, true);
+      if (r && r.value) return JSON.parse(r.value);
+    }
   } catch(e) {}
+  try { const r = localStorage.getItem('sd_' + key); if (r) return JSON.parse(r); } catch(e) {}
   return null;
 }
-
 async function sharedSet(key, value) {
   const json = JSON.stringify(value);
-  const fk = fbKey(key);
-  // 1. Write to Firebase
-  if (window._db) {
-    try {
-      await window._db.ref('cafinal/' + fk).set(json);
-    } catch(e) {
-      console.warn('Firebase write failed, saving to localStorage only', e);
-    }
-  }
-  // 2. Always keep localStorage as local cache
+  try { if (window.storage && typeof window.storage.set === 'function') await window.storage.set(key, json, true); } catch(e) {}
   try { localStorage.setItem('sd_' + key, json); } catch(e) {}
 }
 function sessionGet() {
@@ -600,6 +640,105 @@ const RTOGGLE=[
 ];
 
 const {useState,useEffect,useCallback,useRef,useContext}=React;
+
+// ──────────────────────────────────────────────────────────
+// SUBSCRIPTION PLAN SYSTEM
+// ──────────────────────────────────────────────────────────
+const PLANS = [
+  {
+    id:"free", name:"Free", price:0, emoji:"📖",
+    color:"#6b7280", light:"#f9fafb", border:"#e5e7eb",
+    tagline:"Get started with the basics",
+    features:[
+      { label:"Chapter status tracking (Pending/In Progress/Done)", included:true },
+      { label:"Progress rings & bars for all 6 papers", included:true },
+      { label:"Exam countdown timer", included:true },
+      { label:"Quote of the day & motivational content", included:true },
+      { label:"Dark mode & Tutorial guide", included:true },
+      { label:"Status-based filter", included:true },
+      { label:"Revision Notes per chapter 📝", included:false, needsPlan:"pro" },
+      { label:"Class Attendance tracking 🎓", included:false, needsPlan:"pro" },
+      { label:"Study Streak tracker 🔥", included:false, needsPlan:"pro" },
+      { label:"Priority flags & filters 🚦", included:false, needsPlan:"elite" },
+      { label:"12-week Study Heatmap 📅", included:false, needsPlan:"elite" },
+      { label:"R1/R2/R3 Revision Round tracking 🔄", included:false, needsPlan:"elite" },
+      { label:"Add/Reorder/Delete custom chapters ⇅", included:false, needsPlan:"supreme" },
+      { label:"Important Links tab 🔗", included:false, needsPlan:"supreme" },
+      { label:"Export & Print progress report 📊", included:false, needsPlan:"supreme" },
+    ],
+    newFeatures:["Chapter status tracking","Progress rings & bars","Exam countdown","Dark mode & Tutorial"],
+  },
+  {
+    id:"pro", name:"Pro", price:99, emoji:"⚡",
+    color:"#2563eb", light:"#eff6ff", border:"#bfdbfe",
+    tagline:"Track smarter, study better",
+    badge:null,
+    features:[
+      { label:"Everything in Free", included:true, isMeta:true },
+      { label:"Revision Notes per chapter 📝", included:true },
+      { label:"Class Attendance tracking 🎓", included:true },
+      { label:"Study Streak tracker 🔥", included:true },
+      { label:"Priority flags & filters 🚦", included:false, needsPlan:"elite" },
+      { label:"12-week Study Heatmap 📅", included:false, needsPlan:"elite" },
+      { label:"R1/R2/R3 Revision Round tracking 🔄", included:false, needsPlan:"elite" },
+      { label:"Add/Reorder/Delete custom chapters ⇅", included:false, needsPlan:"supreme" },
+      { label:"Important Links tab 🔗", included:false, needsPlan:"supreme" },
+      { label:"Export & Print progress report 📊", included:false, needsPlan:"supreme" },
+    ],
+    newFeatures:["Revision Notes 📝","Class Attendance 🎓","Study Streak 🔥"],
+  },
+  {
+    id:"elite", name:"Elite", price:199, emoji:"🏆",
+    color:"#7c3aed", light:"#f5f3ff", border:"#ddd6fe",
+    tagline:"Deep analytics for serious revision",
+    badge:"Most Popular",
+    features:[
+      { label:"Everything in Pro", included:true, isMeta:true },
+      { label:"Priority flags (🔴 High / 🟡 Med / 🔵 Low)", included:true },
+      { label:"Advanced filters (Priority & Class)", included:true },
+      { label:"12-week Study Heatmap 📅", included:true },
+      { label:"R1/R2/R3 Revision Round tracking 🔄", included:true },
+      { label:"Add/Reorder/Delete custom chapters ⇅", included:false, needsPlan:"supreme" },
+      { label:"Important Links tab 🔗", included:false, needsPlan:"supreme" },
+      { label:"Export & Print progress report 📊", included:false, needsPlan:"supreme" },
+    ],
+    newFeatures:["Priority flags & filters 🚦","Study Heatmap 📅","R1/R2/R3 Rounds 🔄"],
+  },
+  {
+    id:"supreme", name:"Supreme", price:299, emoji:"👑",
+    color:"#b45309", light:"#fffbeb", border:"#fde68a",
+    tagline:"The complete CA Final toolkit",
+    badge:"Best Value",
+    features:[
+      { label:"Everything in Elite", included:true, isMeta:true },
+      { label:"Add, Reorder & Delete custom chapters ⇅", included:true },
+      { label:"Important Links tab (ICAI BOS, RTP, MTP…) 🔗", included:true },
+      { label:"Export & Print progress report 📊", included:true },
+    ],
+    newFeatures:["Add/Reorder chapters ⇅","Important Links 🔗","Export & Print 📊"],
+  },
+];
+
+const PLAN_LEVEL = { free:0, pro:1, elite:2, supreme:3 };
+
+// feature → minimum plan required
+const FEATURE_PLAN = {
+  notes:"pro", classAttend:"pro", streak:"pro",
+  priority:"elite", heatmap:"elite", revisions:"elite", advFilters:"elite",
+  reorder:"supreme", links:"supreme", exportPrint:"supreme",
+};
+
+function planHas(userPlan, feature) {
+  const required = FEATURE_PLAN[feature];
+  if (!required) return true; // not a gated feature
+  return (PLAN_LEVEL[userPlan||"free"] || 0) >= PLAN_LEVEL[required];
+}
+
+const PlanContext = React.createContext({
+  plan:"free", openUpgrade:()=>{}, activatePlan:()=>{}
+});
+const usePlan = () => React.useContext(PlanContext);
+
 
 // ── Progress Bar ──
 const ProgBar=({pct,color,h=5})=>{
@@ -931,16 +1070,6 @@ function AuthScreen({ onLogin }) {
           </div>
         </div>
 
-        {!window._db&&(
-          <div style={{background:"#fffbeb",border:"1px solid #fde68a",borderRadius:10,
-            padding:"8px 12px",marginBottom:14,display:"flex",gap:8,alignItems:"flex-start"}}>
-            <span style={{fontSize:"0.85rem",flexShrink:0}}>⚠️</span>
-            <div style={{fontSize:"0.66rem",color:"#92400e",lineHeight:1.5}}>
-              <strong>Firebase not configured.</strong> Data is saved on this device only — login will not work on other devices until you add your Firebase config to the file.
-            </div>
-          </div>
-        )}
-
         <div style={{display:"flex",flexDirection:"column",gap:11}}>
           <div>
             <label style={{fontSize:"0.72rem",fontWeight:600,color:T.secondary,display:"block",marginBottom:5}}>Username</label>
@@ -1038,177 +1167,334 @@ function AuthScreen({ onLogin }) {
 }
 
 // ──────────────────────────────────────────────────────────
-// TRACKER APP
+// SUBSCRIPTION MODAL
 // ──────────────────────────────────────────────────────────
-// ──────────────────────────────────────────────────────────
-// PLANS TAB COMPONENT
-// ──────────────────────────────────────────────────────────
-function PlansTab() {
+function SubscriptionModal({ onClose }) {
   const {darkMode:dm} = useContext(ThemeContext);
+  const { plan:currentPlan, activatePlan } = usePlan();
   const T = getT(dm);
-  const [billing, setBilling] = useState("monthly");
+  const [payingFor, setPayingFor] = useState(null); // plan id being purchased
+  const [payStep, setPayStep] = useState("idle"); // idle | confirm | processing | success
+  const [selectedPlan, setSelectedPlan] = useState(null);
 
-  const prices = {
-    monthly: { starter:"Free", pro:"₹59", premium:"₹99", One_time_payment:"₹199" },
-    yearly:  { starter:"Free", pro:"₹700", premium:"₹1100", One_time_payment:"₹199" },
+  const startPurchase = (plan) => {
+    if (plan.price === 0) return;
+    setSelectedPlan(plan);
+    setPayStep("confirm");
   };
-  const period = { monthly:"/month", yearly:"/year" };
 
-  const PLANS = [
-    {
-      key:"starter", name:"Free", emoji:"📖",
-      desc:"For students just getting started.",
-      features:["Track all 6 CA Final subjects","Basic progress dashboard","Study streak heatmap","localStorage sync (single device)"],
-    },
-    {
-      key:"pro", name:"Pro", emoji:"🚀", popular:true,
-      desc:"Unlock cross-device sync & advanced tools.",
-      features:["Everything in Free","☁️ Cloud sync across all devices","Priority + class filters","Your custom Revision notes (unlimited)","🔥 Streak analytics"],
-      monthlyLink:"https://rzp.io/rzp/x3KL5GZ",
-      yearlyLink:"https://rzp.io/rzp/pU1D6Mt",
-    },
-    {
-      key:"premium", name:"Premium", emoji:"👑",
-      desc:"For the serious CA Final aspirant.",
-      features:["Everything in Pro","📊 Detailed analytics & insights","🗂️ Custom chapter grouping","Priority email support"],
-      monthlyLink:"https://rzp.io/rzp/KFtmNAtD",
-      yearlyLink:"https://rzp.io/rzp/DD8OhMnr",
-    },
-    {
-      key:"One_time_payment", name:"For Nov'26 Students", emoji:"🤩",
-      desc:"For the serious CA Final Nov'26 candidates.",
-      features:["Everything in Pro"],
-      Nov26Link:"https://rzp.io/rzp/3Wskimfe",
-    },
-  ];
+  const simulatePay = () => {
+    setPayStep("processing");
+    setTimeout(() => {
+      activatePlan(selectedPlan.id);
+      setPayStep("success");
+      setTimeout(() => { onClose(); }, 2200);
+    }, 1800);
+  };
 
-  return (
-    <>
-      {/* Header */}
-      <div style={{textAlign:"center",marginBottom:20}}>
-        <div style={{fontSize:"1.6rem",marginBottom:6}}>💳</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.15rem",fontWeight:700,
-          color:T.primary,marginBottom:4,letterSpacing:"-0.3px"}}>Choose Your Plan</div>
-        <div style={{fontSize:"0.71rem",color:T.muted,lineHeight:1.5}}>
-          Unlock full access to all CA Final resources.<br/>Payments secured by Razorpay.
-        </div>
-      </div>
+  // payment sub-screen
+  if (payStep !== "idle") {
+    const plan = selectedPlan;
+    return (
+      <div className="plan-overlay" onClick={e=>{if(e.target===e.currentTarget&&payStep!=="processing")onClose();}}>
+        <div className="plan-sheet" style={{background:T.card,borderColor:T.border}}>
+          <div style={{padding:"24px 22px 8px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.1rem",fontWeight:700,color:T.primary}}>
+              Complete Payment
+            </div>
+            {payStep!=="processing"&&(
+              <button onClick={onClose} style={{background:T.btn,border:`1.5px solid ${T.borderBtn}`,
+                borderRadius:8,padding:"5px 12px",cursor:"pointer",color:T.muted,fontSize:"0.8rem"}}>✕</button>
+            )}
+          </div>
 
-      {/* Billing toggle */}
-      <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,marginBottom:18}}>
-        <span style={{fontSize:"0.74rem",fontWeight:billing==="monthly"?600:400,
-          color:billing==="monthly"?T.primary:T.muted,transition:"all 0.15s"}}>Monthly</span>
-        <div onClick={()=>setBilling(b=>b==="monthly"?"yearly":"monthly")}
-          style={{width:40,height:22,borderRadius:22,cursor:"pointer",position:"relative",
-            background:billing==="yearly"?"#b45309":"#d6d3d1",transition:"background 0.2s"}}>
-          <div style={{position:"absolute",top:3,left:billing==="yearly"?19:3,width:16,height:16,
-            borderRadius:"50%",background:"#fff",transition:"left 0.2s",
-            boxShadow:"0 1px 3px rgba(0,0,0,0.25)"}}/>
-        </div>
-        <span style={{fontSize:"0.74rem",fontWeight:billing==="yearly"?600:400,
-          color:billing==="yearly"?T.primary:T.muted,transition:"all 0.15s"}}>Yearly</span>
-        <span style={{fontSize:"0.62rem",background:dm?"rgba(180,83,9,0.22)":"#fffbeb",
-          color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
-          padding:"2px 8px",fontWeight:600}}>Save 33%</span>
-      </div>
-
-      {/* Plan cards */}
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        {PLANS.map(plan=>{
-          const isPopular = plan.popular;
-          const link = plan.key==="starter" ? "#" : plan.key==="One_time_payment" ? plan.Nov26Link : (billing==="monthly" ? plan.monthlyLink : plan.yearlyLink);
-          return (
-            <div key={plan.key} style={{
-              background:T.card,
-              border:isPopular?`2px solid #b45309`:`1.5px solid ${T.border}`,
-              borderRadius:16,padding:"16px 16px 14px",
-              boxShadow:isPopular
-                ?`0 4px 20px ${dm?"rgba(180,83,9,0.25)":"rgba(180,83,9,0.12)"}`
-                :`0 1px 4px ${dm?"rgba(0,0,0,0.2)":"rgba(0,0,0,0.04)"}`,
-              position:"relative",transition:"all 0.25s",
-            }}>
-              {isPopular&&(
-                <div style={{position:"absolute",top:-12,left:"50%",transform:"translateX(-50%)",
-                  background:"#b45309",color:"#fff",fontSize:"0.62rem",fontWeight:700,
-                  padding:"3px 12px",borderRadius:20,whiteSpace:"nowrap",letterSpacing:"0.04em"}}>
-                  ⭐ Most Popular
-                </div>
-              )}
-
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-                <div>
-                  <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
-                    <span style={{fontSize:"1.1rem"}}>{plan.emoji}</span>
-                    <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
-                      fontSize:"0.95rem",color:T.primary}}>{plan.name}</span>
-                  </div>
-                  <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.4}}>{plan.desc}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.2rem",
-                    fontWeight:700,color:isPopular?"#b45309":T.primary,lineHeight:1}}>
-                    {prices[billing][plan.key]}
-                  </div>
-                  {plan.key!=="starter"&&(
-                    <div style={{fontSize:"0.6rem",color:T.muted,marginTop:2}}>
-                      {plan.key==="One_time_payment" ? "one-time" : period[billing]}
-                    </div>
-                  )}
-                </div>
+          {payStep==="success" ? (
+            <div style={{padding:"32px 22px 40px",textAlign:"center"}}>
+              <div style={{fontSize:"3.5rem",marginBottom:16,animation:"checkPop 0.4s cubic-bezier(.22,1,.36,1) both"}}>✅</div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.2rem",fontWeight:700,
+                color:"#047857",marginBottom:8}}>Payment Successful!</div>
+              <div style={{fontSize:"0.85rem",color:T.secondary,marginBottom:16}}>
+                <span style={{fontWeight:700,color:plan.color}}>{plan.emoji} {plan.name} Plan</span> is now active.<br/>
+                Enjoy all your unlocked features!
               </div>
-
-              <div style={{borderTop:`1px solid ${T.border}`,paddingTop:10,marginBottom:12}}>
-                {plan.features.map(f=>(
-                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
-                    <span style={{color:"#047857",fontSize:"0.75rem",marginTop:1,flexShrink:0}}>✓</span>
-                    <span style={{fontSize:"0.72rem",color:T.secondary,lineHeight:1.4}}>{f}</span>
-                  </div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center"}}>
+                {plan.newFeatures.map(f=>(
+                  <span key={f} style={{background:dm?plan.color+"22":plan.light,
+                    color:plan.color,border:`1px solid ${plan.border}`,
+                    borderRadius:20,padding:"4px 12px",fontSize:"0.72rem",fontWeight:600}}>✓ {f}</span>
                 ))}
               </div>
-
-              {plan.key==="starter"
-                ? <div style={{textAlign:"center",padding:"9px",fontSize:"0.77rem",
-                    fontWeight:600,color:T.muted,background:T.card2,
-                    border:`1.5px solid ${T.borderBtn}`,borderRadius:10}}>
-                    ✓ Your current plan
-                  </div>
-                : <a href={link} target="_blank" rel="noopener noreferrer"
-                    style={{display:"block",textAlign:"center",padding:"11px",
-                      fontSize:"0.82rem",fontWeight:700,textDecoration:"none",
-                      borderRadius:10,cursor:"pointer",transition:"all 0.18s",
-                      background:isPopular?"#b45309":T.cta,
-                      color:isPopular?"#fff":T.ctaText,
-                      boxShadow:isPopular?"0 3px 12px rgba(180,83,9,0.35)":"none",
-                      border:"none",fontFamily:"'DM Sans',sans-serif"}}>
-                    {plan.key==="One_time_payment"
-                      ?`${plan.name} — ₹199 one-time →`
-                      :billing==="monthly"
-                        ?`${plan.name} — ${prices.monthly[plan.key]}/mo →`
-                        :`${plan.name} — ${prices.yearly[plan.key]}/yr →`}
-                  </a>
-              }
             </div>
-          );
-        })}
-      </div>
+          ) : (
+            <div style={{padding:"16px 22px 32px"}}>
+              {/* Order summary */}
+              <div style={{background:dm?plan.color+"18":plan.light,border:`1.5px solid ${plan.border}`,
+                borderRadius:14,padding:"14px 16px",marginBottom:18}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div>
+                    <div style={{fontSize:"0.65rem",fontWeight:700,color:plan.color,letterSpacing:"0.1em",
+                      textTransform:"uppercase",marginBottom:4}}>Order Summary</div>
+                    <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1rem",fontWeight:700,color:T.primary}}>
+                      CA Final Tracker — {plan.name}
+                    </div>
+                    <div style={{fontSize:"0.72rem",color:T.secondary,marginTop:3}}>
+                      Lifetime access · {plan.newFeatures.length} features unlocked
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.6rem",fontWeight:800,
+                      color:plan.color,lineHeight:1}}>₹{plan.price}</div>
+                    <div style={{fontSize:"0.6rem",color:T.muted}}>one-time</div>
+                  </div>
+                </div>
+              </div>
 
-      {/* Trust strip */}
-      <div style={{display:"flex",flexWrap:"wrap",gap:8,justifyContent:"center",
-        marginTop:18,padding:"12px 0",borderTop:`1px solid ${T.border}`}}>
-        {["🔒 Secured by Razorpay","🔄 Cancel anytime","🧾 GST invoice included","💳 UPI · Cards · Netbanking"].map(t=>(
-          <div key={t} style={{fontSize:"0.63rem",color:T.muted,background:T.card2,
-            border:`1px solid ${T.borderBtn}`,borderRadius:20,padding:"4px 10px"}}>
-            {t}
-          </div>
-        ))}
+              {/* Mock UPI section */}
+              <div style={{background:T.card2,border:`1px solid ${T.border}`,borderRadius:12,
+                padding:"14px 16px",marginBottom:16,textAlign:"center"}}>
+                <div style={{fontSize:"0.65rem",fontWeight:700,color:T.muted,letterSpacing:"0.1em",
+                  textTransform:"uppercase",marginBottom:10}}>Scan & Pay via UPI</div>
+                {/* Mock QR code block */}
+                <div style={{width:120,height:120,margin:"0 auto 10px",
+                  background:dm?"#fff":"#1c1917",borderRadius:10,padding:8,
+                  display:"grid",gridTemplateColumns:"repeat(7,1fr)",gap:1.5,boxSizing:"border-box"}}>
+                  {Array.from({length:49}).map((_,i)=>{
+                    const corners=[[0,1,2,7,8,9,14,15,16],[2,9,16],[32,39,46],[30,31,32,37,38,39,44,45,46]];
+                    const isCorner = i<7&&i>0?i<3:false;
+                    // Simple pseudo-random QR pattern
+                    const seed = (i*7+13)%17;
+                    const filled = seed<9 || i===24 || (i>20&&i<28&&i%3===0);
+                    return <div key={i} style={{
+                      borderRadius:1,
+                      background:filled?(dm?"#1c1917":"#fff"):"transparent",
+                      aspectRatio:"1",
+                    }}/>;
+                  })}
+                </div>
+                <div style={{fontSize:"0.72rem",fontWeight:600,color:T.primary}}>cafinaltracker@upi</div>
+                <div style={{fontSize:"0.62rem",color:T.muted,marginTop:2}}>Amount: ₹{plan.price}</div>
+              </div>
+
+              {/* Demo note */}
+              <div style={{background:dm?"rgba(180,83,9,0.12)":"#fffbeb",border:"1px solid #fde68a",
+                borderRadius:10,padding:"9px 14px",marginBottom:14,
+                display:"flex",gap:8,alignItems:"flex-start",fontSize:"0.7rem",color:"#92400e",lineHeight:1.5}}>
+                <span style={{flexShrink:0}}>⚠️</span>
+                <span><strong>Demo Mode:</strong> No real payment is processed. Click "Confirm Payment" to simulate activation and unlock features instantly.</span>
+              </div>
+
+              <button className="plan-cta-btn" onClick={simulatePay}
+                disabled={payStep==="processing"}
+                style={{background:payStep==="processing"?T.ctaLoading:plan.color,
+                  color:"#fff",
+                  boxShadow:payStep==="processing"?"none":`0 4px 16px ${plan.color}55`,
+                  animation:payStep==="idle"?"payPulse 2s ease infinite":"none"}}>
+                {payStep==="processing"
+                  ? <><div className="spinner"/>Processing…</>
+                  : <>✓ Confirm Payment — ₹{plan.price}</>}
+              </button>
+              <button onClick={()=>setPayStep("idle")}
+                style={{width:"100%",marginTop:10,background:"none",border:"none",
+                  color:T.muted,cursor:"pointer",fontSize:"0.75rem",padding:"6px",fontFamily:"'DM Sans',sans-serif"}}>
+                ← Back to plans
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-    </>
+    );
+  }
+
+  // Main plan selection screen
+  return (
+    <div className="plan-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div className="plan-sheet" style={{background:T.card,borderColor:T.border}}>
+        {/* Handle bar */}
+        <div style={{width:40,height:4,background:T.borderBtn,borderRadius:99,margin:"12px auto 0"}}/>
+
+        {/* Header */}
+        <div style={{padding:"18px 22px 4px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div>
+              <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.2rem",fontWeight:700,
+                color:T.primary,letterSpacing:"-0.3px"}}>✨ Unlock Your Tracker</div>
+              <div style={{fontSize:"0.73rem",color:T.secondary,marginTop:4}}>
+                One-time payment · Lifetime access · No subscription
+              </div>
+            </div>
+            <button onClick={onClose} style={{background:T.btn,border:`1.5px solid ${T.borderBtn}`,
+              borderRadius:8,padding:"5px 12px",cursor:"pointer",color:T.muted,fontSize:"0.8rem",flexShrink:0}}>✕</button>
+          </div>
+
+          {/* Current plan pill */}
+          <div style={{display:"inline-flex",alignItems:"center",gap:6,
+            background:dm?"rgba(16,185,129,0.15)":"#ecfdf5",
+            border:"1px solid #a7f3d0",borderRadius:20,padding:"4px 12px",marginTop:10}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:"#10b981"}}/>
+            <span style={{fontSize:"0.68rem",fontWeight:600,color:"#047857"}}>
+              Current: {PLANS.find(p=>p.id===currentPlan)?.name||"Free"} Plan
+            </span>
+          </div>
+        </div>
+
+        {/* Plans list */}
+        <div style={{padding:"14px 16px 0",display:"flex",flexDirection:"column",gap:10}}>
+          {PLANS.map((plan)=>{
+            const isActive = currentPlan === plan.id;
+            const isLower = PLAN_LEVEL[plan.id] < PLAN_LEVEL[currentPlan];
+            return (
+              <div key={plan.id} className={`plan-card-item${isActive?" active-plan":""}`}
+                style={{borderColor:isActive?"#047857":plan.border,
+                  background:isActive?(dm?"rgba(4,120,87,0.08)":"#f0fdf4"):T.card,
+                  transition:"all 0.2s ease",cursor:"default"}}>
+
+                {/* Plan header row */}
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:36,height:36,borderRadius:10,flexShrink:0,
+                      background:dm?plan.color+"22":plan.light,
+                      border:`1.5px solid ${plan.border}`,
+                      display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.1rem"}}>
+                      {plan.emoji}
+                    </div>
+                    <div>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span style={{fontFamily:"'Playfair Display',serif",fontSize:"0.95rem",
+                          fontWeight:700,color:T.primary}}>{plan.name}</span>
+                        {plan.badge&&(
+                          <span style={{background:dm?plan.color+"22":plan.light,color:plan.color,
+                            border:`1px solid ${plan.border}`,borderRadius:20,
+                            padding:"1px 7px",fontSize:"0.58rem",fontWeight:700,letterSpacing:"0.05em"}}>
+                            {plan.badge}
+                          </span>
+                        )}
+                        {isActive&&(
+                          <span style={{background:"#ecfdf5",color:"#047857",
+                            border:"1px solid #a7f3d0",borderRadius:20,
+                            padding:"1px 7px",fontSize:"0.58rem",fontWeight:700}}>✓ Active</span>
+                        )}
+                      </div>
+                      <div style={{fontSize:"0.65rem",color:T.muted,marginTop:1}}>{plan.tagline}</div>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right",flexShrink:0}}>
+                    {plan.price===0
+                      ? <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.1rem",fontWeight:800,color:T.primary}}>Free</div>
+                      : <>
+                          <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.1rem",fontWeight:800,color:plan.color}}>₹{plan.price}</div>
+                          <div style={{fontSize:"0.58rem",color:T.muted}}>one-time</div>
+                        </>
+                    }
+                  </div>
+                </div>
+
+                {/* Feature bullets (show new features only for brevity) */}
+                <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:10}}>
+                  {(plan.newFeatures||[]).map(f=>(
+                    <span key={f} style={{background:dm?plan.color+"18":plan.light,
+                      color:plan.color,border:`1px solid ${plan.border}`,
+                      borderRadius:20,padding:"3px 10px",fontSize:"0.67rem",fontWeight:600}}>✓ {f}</span>
+                  ))}
+                  {plan.id!=="free"&&<span style={{background:T.card2,color:T.muted,
+                    border:`1px solid ${T.border}`,borderRadius:20,
+                    padding:"3px 10px",fontSize:"0.67rem"}}>+ all lower plan features</span>}
+                </div>
+
+                {/* CTA */}
+                {!isActive && !isLower && plan.price > 0 && (
+                  <button className="plan-cta-btn" onClick={()=>startPurchase(plan)}
+                    style={{background:plan.color,color:"#fff",
+                      boxShadow:`0 3px 12px ${plan.color}44`,padding:"11px"}}>
+                    Buy {plan.name} — ₹{plan.price} →
+                  </button>
+                )}
+                {isActive && (
+                  <div style={{textAlign:"center",fontSize:"0.72rem",color:"#047857",
+                    fontWeight:600,padding:"8px 0 2px"}}>
+                    ✅ You're on this plan
+                  </div>
+                )}
+                {isLower && (
+                  <div style={{textAlign:"center",fontSize:"0.68rem",color:T.muted,padding:"6px 0 2px"}}>
+                    Included in your current plan
+                  </div>
+                )}
+                {plan.price===0 && !isActive && (
+                  <div style={{textAlign:"center",fontSize:"0.68rem",color:T.muted,padding:"6px 0 2px"}}>
+                    Default — no payment needed
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer */}
+        <div style={{padding:"16px 22px 24px",textAlign:"center",
+          borderTop:`1px solid ${T.border}`,marginTop:14}}>
+          <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.6}}>
+            🔒 Secure · One-time payment · No hidden charges<br/>
+            For queries contact <span style={{color:"#b45309",fontWeight:600}}>CA Avishi Gupta</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Locked Badge (inline, for chapter-row buttons) ──
+function LockedBtn({ label, planNeeded }) {
+  const { openUpgrade } = usePlan();
+  const planInfo = PLANS.find(p=>p.id===planNeeded) || PLANS[1];
+  return (
+    <button onClick={openUpgrade} className="locked-badge"
+      style={{background:"#fafaf9",color:"#9ca3af",borderColor:"#e5e7eb",
+        opacity:0.8,fontFamily:"'DM Sans',sans-serif"}}>
+      🔒 {label}
+    </button>
+  );
+}
+
+// ── Locked Section Card (for heatmap, streak, etc.) ──
+function LockedSection({ emoji, title, desc, planNeeded, compact }) {
+  const { openUpgrade } = usePlan();
+  const planInfo = PLANS.find(p=>p.id===planNeeded) || PLANS[1];
+  const {darkMode:dm} = useContext(ThemeContext);
+  const T = getT(dm);
+  if (compact) return (
+    <div onClick={openUpgrade} className="locked-section"
+      style={{padding:"12px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10,textAlign:"left"}}>
+      <span style={{fontSize:"1.4rem",flexShrink:0}}>🔒</span>
+      <div>
+        <div style={{fontSize:"0.75rem",fontWeight:600,color:T.primary,marginBottom:2}}>{title}</div>
+        <div style={{fontSize:"0.65rem",color:T.muted}}>{desc}</div>
+      </div>
+      <span style={{marginLeft:"auto",background:dm?planInfo.color+"22":planInfo.light,
+        color:planInfo.color,border:`1px solid ${planInfo.border}`,
+        borderRadius:20,padding:"3px 10px",fontSize:"0.62rem",fontWeight:700,flexShrink:0,whiteSpace:"nowrap"}}>
+        {planInfo.name} ↑
+      </span>
+    </div>
+  );
+  return (
+    <div onClick={openUpgrade} className="locked-section"
+      style={{marginBottom:14}}>
+      <div style={{fontSize:"2rem",marginBottom:8}}>{emoji||"🔒"}</div>
+      <div style={{fontFamily:"'Playfair Display',serif",fontSize:"0.9rem",fontWeight:700,
+        color:T.primary,marginBottom:4}}>{title}</div>
+      <div style={{fontSize:"0.73rem",color:T.secondary,marginBottom:12,lineHeight:1.5}}>{desc}</div>
+      <span style={{background:dm?planInfo.color+"22":planInfo.light,
+        color:planInfo.color,border:`1px solid ${planInfo.border}`,
+        borderRadius:20,padding:"5px 16px",fontSize:"0.72rem",fontWeight:700}}>
+        🔓 Unlock with {planInfo.name} Plan — ₹{planInfo.price}
+      </span>
+    </div>
   );
 }
 
 function TrackerApp({ user, onLogout }) {
-  const userPlan = user.plan || { key: "free" };
   const {darkMode:dm} = useContext(ThemeContext);
+  const { plan, openUpgrade } = usePlan();
   const T = getT(dm);
 
   const [view, setView] = useState("dashboard");
@@ -1224,12 +1510,10 @@ function TrackerApp({ user, onLogout }) {
   const [reorderMode, setReorderMode] = useState(false);
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showUpgrade, setShowUpgrade] = useState(false);
   const [showTutorial, setShowTutorial] = useState(() => {
     try { return !localStorage.getItem(`cafinal_tutorial_seen:${user.username}`); } catch(e) { return false; }
   });
-  const isPro = userPlan.key === "pro" || userPlan.key === "premium";
-  const isPremium = userPlan.key === "premium";
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [dashTab, setDashTab] = useState("subjects"); // "subjects" | "links"
   const [examDate, setExamDate] = useState(() => {
     try { return localStorage.getItem('cafinal_examdate') || "2026-11-01"; } catch(e) { return "2026-11-01"; }
@@ -1365,11 +1649,9 @@ function TrackerApp({ user, onLogout }) {
           placeholder="Your name" autoFocus className="auth-input"
           style={{textAlign:"center",marginBottom:12}}/>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={async ()=>{
+          <button onClick={()=>{
             if(!nameInput.trim()) return;
-            // Load existing user record so we keep the passwordHash
-            const existing = await sharedGet(`user:${user.username}`) || {};
-            await sharedSet(`user:${user.username}`, {...existing, name:nameInput.trim()});
+            sharedSet(`user:${user.username}`,{name:nameInput.trim(),passwordHash:undefined});
             sessionSet({...user,name:nameInput.trim()});
             window.location.reload();
           }}
@@ -1461,6 +1743,20 @@ function TrackerApp({ user, onLogout }) {
               <DarkToggle/>
               <button className="tut-help-btn" onClick={()=>setShowTutorial(true)} title="Open Tutorial">❓</button>
             </div>
+            <button onClick={()=>setShowPlanModal(true)}
+              style={{display:"flex",alignItems:"center",gap:5,
+                background:plan==="free"?(dm?"rgba(180,83,9,0.15)":"#fffbeb"):
+                  plan==="pro"?(dm?"rgba(37,99,235,0.15)":"#eff6ff"):
+                  plan==="elite"?(dm?"rgba(124,58,237,0.15)":"#f5f3ff"):
+                  (dm?"rgba(180,83,9,0.15)":"#fffbeb"),
+                color:plan==="free"?"#b45309":plan==="pro"?"#2563eb":plan==="elite"?"#7c3aed":"#b45309",
+                border:`1.5px solid ${plan==="free"?"#fde68a":plan==="pro"?"#bfdbfe":plan==="elite"?"#ddd6fe":"#fde68a"}`,
+                borderRadius:20,padding:"4px 11px",fontSize:"0.64rem",cursor:"pointer",
+                fontWeight:700,whiteSpace:"nowrap",transition:"all 0.15s"}}>
+              {plan==="free"?"📖":plan==="pro"?"⚡":plan==="elite"?"🏆":"👑"}
+              {" "}{(PLANS.find(p=>p.id===plan)||PLANS[0]).name}
+              {plan!=="supreme"&&<span style={{opacity:0.7,fontSize:"0.58rem"}}>· Upgrade ↑</span>}
+            </button>
             <button onClick={()=>{setNameInput(user.name);setEditingName(true);}}
               style={{background:T.btn,border:`1.5px solid ${T.borderBtn}`,borderRadius:8,
                 padding:"4px 10px",fontSize:"0.64rem",color:T.subtle,cursor:"pointer",
@@ -1671,36 +1967,7 @@ function TrackerApp({ user, onLogout }) {
 
         {/* Streak heatmap card */}
         {(()=>{
-          if(!isPro) return (
-            <div style={{background:T.card,borderRadius:14,padding:"13px 16px",marginBottom:14,
-              border:`1.5px solid ${T.border}`,
-              boxShadow:`0 1px 4px ${dm?"rgba(0,0,0,0.2)":"rgba(0,0,0,0.04)"}`,
-              transition:"background 0.25s,border-color 0.25s"}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                <span style={{fontSize:"0.7rem",fontWeight:600,color:T.primary}}>🔥 Study Streak</span>
-                <span style={{fontSize:"0.6rem",background:dm?"rgba(180,83,9,0.18)":"#fffbeb",
-                  color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
-                  padding:"2px 8px",fontWeight:600}}>🔒 Pro Feature</span>
-              </div>
-              <div style={{filter:"blur(3px)",pointerEvents:"none",opacity:0.4,height:80,
-                display:"flex",alignItems:"center",justifyContent:"center"}}>
-                <div style={{display:"flex",gap:2}}>
-                  {Array.from({length:60}).map((_,i)=>(
-                    <div key={i} style={{width:8,height:8,borderRadius:2,
-                      background:Math.random()>0.6?"#ea580c":"#e7e5e4"}}/>
-                  ))}
-                </div>
-              </div>
-              <button onClick={()=>setShowUpgrade(true)}
-                style={{width:"100%",marginTop:10,background:"#b45309",color:"#fff",border:"none",
-                  borderRadius:9,padding:"9px",cursor:"pointer",fontSize:"0.78rem",fontWeight:700,
-                  fontFamily:"'DM Sans',sans-serif",boxShadow:"0 2px 8px rgba(180,83,9,0.3)"}}>
-                Upgrade to Pro to unlock Streak Heatmap →
-              </button>
-            </div>
-          );
           const today = new Date(); today.setHours(0,0,0,0);
-          // build 84 days (12 weeks) ending today
           const days = Array.from({length:84},(_,i)=>{
             const d = new Date(today); d.setDate(d.getDate()-(83-i));
             return d.toISOString().slice(0,10);
@@ -1709,6 +1976,18 @@ function TrackerApp({ user, onLogout }) {
           const weeks = [];
           for(let w=0;w<12;w++) weeks.push(days.slice(w*7,(w+1)*7));
           const DAY_LABELS = ["S","M","T","W","T","F","S"];
+          const hasStreak = planHas(plan,"streak");
+          const hasHeatmap = planHas(plan,"heatmap");
+
+          // Free: show teaser locked card
+          if (!hasStreak) return (
+            <LockedSection emoji="🔥" title="Study Streak Tracker"
+              desc="Track your daily study consistency with a streak counter and longest streak record."
+              planNeeded="pro" />
+          );
+
+          // Pro: show streak count but not heatmap
+          // Elite+: show full heatmap
           return (
           <div style={{background:T.card,borderRadius:14,padding:"13px 16px",marginBottom:14,
             border:`1.5px solid ${T.border}`,
@@ -1717,7 +1996,7 @@ function TrackerApp({ user, onLogout }) {
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <div>
                 <span style={{fontSize:"0.7rem",fontWeight:600,color:T.primary}}>🔥 Study Streak</span>
-                <span style={{fontSize:"0.6rem",color:T.muted,marginLeft:6}}>Last 12 weeks</span>
+                {hasHeatmap && <span style={{fontSize:"0.6rem",color:T.muted,marginLeft:6}}>Last 12 weeks</span>}
               </div>
               <div style={{display:"flex",gap:12}}>
                 {[{label:"Current",val:streak.current,color:"#f97316"},{label:"Longest",val:streak.longest,color:"#d4a853"}].map(({label,val,color})=>(
@@ -1728,6 +2007,8 @@ function TrackerApp({ user, onLogout }) {
                 ))}
               </div>
             </div>
+            {hasHeatmap ? (
+            <>
             {/* Heatmap grid */}
             <div style={{display:"flex",gap:3}}>
               {/* Day labels column */}
@@ -1775,6 +2056,20 @@ function TrackerApp({ user, onLogout }) {
               ))}
               <span style={{fontSize:"0.52rem",color:T.muted}}>More</span>
             </div>
+            </>
+            ) : (
+              <div onClick={openUpgrade} style={{marginTop:6,background:dm?"rgba(124,58,237,0.1)":"#f5f3ff",
+                border:"1.5px dashed #ddd6fe",borderRadius:10,padding:"10px 14px",cursor:"pointer",
+                display:"flex",alignItems:"center",gap:8,transition:"all 0.2s"}}>
+                <span style={{fontSize:"1.2rem"}}>📅</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:"0.72rem",fontWeight:600,color:"#7c3aed"}}>Unlock 12-week Heatmap</div>
+                  <div style={{fontSize:"0.62rem",color:"#a78bfa"}}>See your study activity visualised over time</div>
+                </div>
+                <span style={{background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",
+                  borderRadius:20,padding:"3px 9px",fontSize:"0.6rem",fontWeight:700,flexShrink:0}}>Elite ↑</span>
+              </div>
+            )}
           </div>
           );
         })()}
@@ -1794,32 +2089,59 @@ function TrackerApp({ user, onLogout }) {
               overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{user.name}</div>
             <div style={{fontSize:"0.63rem",color:T.muted}}>@{user.username} · {selectedExam.label} Candidate</div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end",flexShrink:0}}>
-            <div style={{fontSize:"0.63rem",color:"#10b981",fontWeight:500,
-              background:"#ecfdf5",borderRadius:20,padding:"3px 9px",
-              border:"1px solid #a7f3d0"}}>● Synced</div>
-            <div style={{fontSize:"0.6rem",fontWeight:700,borderRadius:20,padding:"2px 8px",
-              border:"1px solid",
-              ...(userPlan.key==="premium"
-                ? {background:dm?"rgba(124,58,237,0.2)":"#f5f3ff",color:"#7C3AED",borderColor:"#c4b5fd"}
-                : userPlan.key==="pro"
-                  ? {background:dm?"rgba(180,83,9,0.2)":"#fffbeb",color:"#b45309",borderColor:"#fde68a"}
-                  : {background:T.btn,color:T.muted,borderColor:T.borderBtn})
-            }}>
-              {userPlan.key==="premium"?"👑 Premium":userPlan.key==="pro"?"🚀 Pro":"📖 Free"}
-            </div>
-          </div>
+          <div style={{fontSize:"0.63rem",color:"#10b981",fontWeight:500,
+            background:"#ecfdf5",borderRadius:20,padding:"3px 9px",
+            border:"1px solid #a7f3d0",flexShrink:0}}>● Synced</div>
         </div>
+
+        {/* Plan upgrade banner — only for non-Supreme */}
+        {plan!=="supreme"&&(
+          <div onClick={()=>setShowPlanModal(true)}
+            style={{background:
+              plan==="free"?"linear-gradient(135deg,#fffbeb,#fef3c7)":
+              plan==="pro"?"linear-gradient(135deg,#eff6ff,#dbeafe)":
+              "linear-gradient(135deg,#f5f3ff,#ede9fe)",
+              border:`1.5px solid ${plan==="free"?"#fde68a":plan==="pro"?"#bfdbfe":"#ddd6fe"}`,
+              borderRadius:12,padding:"10px 14px",marginBottom:14,cursor:"pointer",
+              display:"flex",alignItems:"center",gap:10,transition:"opacity 0.15s"}}
+            onMouseOver={e=>e.currentTarget.style.opacity="0.85"} onMouseOut={e=>e.currentTarget.style.opacity="1"}>
+            <span style={{fontSize:"1.2rem",flexShrink:0}}>
+              {plan==="free"?"⚡":plan==="pro"?"🏆":"👑"}
+            </span>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:"0.72rem",fontWeight:700,
+                color:plan==="free"?"#b45309":plan==="pro"?"#2563eb":"#7c3aed"}}>
+                {plan==="free"?"Upgrade to Pro — unlock Notes, Streak & Attendance":
+                 plan==="pro"?"Upgrade to Elite — unlock Priority, Heatmap & Revision Rounds":
+                 "Upgrade to Supreme — unlock Add/Reorder, Links & Export"}
+              </div>
+              <div style={{fontSize:"0.62rem",
+                color:plan==="free"?"#92400e":plan==="pro"?"#1d4ed8":"#5b21b6",marginTop:2}}>
+                Starting from ₹{plan==="free"?99:plan==="pro"?199:299} · one-time payment
+              </div>
+            </div>
+            <span style={{fontSize:"0.7rem",
+              color:plan==="free"?"#b45309":plan==="pro"?"#2563eb":"#7c3aed",flexShrink:0}}>→</span>
+          </div>
+        )}
 
         {/* Dashboard tabs */}
         <div style={{display:"flex",borderRadius:12,overflow:"hidden",border:`1.5px solid ${T.border}`,marginBottom:14,transition:"border-color 0.25s"}}>
-          {[["subjects","📚 Subjects"],["links","🔗 Links"],["plans","💳 Plans"]].map(([key,label])=>(
-            <button key={key} onClick={()=>setDashTab(key)}
-              className={`tab-btn ${dashTab===key?"active":"inactive"}`}
-              style={{fontSize:"0.76rem",letterSpacing:"0.01em"}}>
-              {label}
-            </button>
-          ))}
+          {[["subjects","📚 Subjects"],["links","🔗 Important Links"]].map(([key,label])=>{
+            const isLinks = key==="links";
+            const lockedLinks = isLinks && !planHas(plan,"links");
+            return (
+              <button key={key}
+                onClick={()=>{ if(lockedLinks){openUpgrade();}else setDashTab(key); }}
+                className={`tab-btn ${dashTab===key?"active":"inactive"}`}
+                style={{fontSize:"0.76rem",letterSpacing:"0.01em",
+                  opacity:lockedLinks?0.6:1,
+                  position:"relative"}}>
+                {label}
+                {lockedLinks&&<span style={{fontSize:"0.58rem",marginLeft:4}}>🔒</span>}
+              </button>
+            );
+          })}
         </div>
 
         {/* Subject grid */}
@@ -1880,12 +2202,6 @@ function TrackerApp({ user, onLogout }) {
                 {label:"Suggested Answers (Old Scheme)",desc:"Previous year suggested answers",url:"https://boslive.icai.org/education_content.php?p=Previous%20Year%20Suggested%20Answers&c=final",color:"#78716c",light:"#f5f5f4",border:"#78716c55"},
               ]
             },
-            {
-              category:"YouTube channels",
-              links:[
-                {label:"CA Avishi Gupta", desc:"One Stop Solution for SCPM and IBS",url:"https://youtube.com/@avishigupta888?si=f4vx1P-Alc-6IzXm", color:"#047857",light:"#ecfdf5",border:"04785755"},
-              ]
-            }
           ].map(({category,links})=>(
             <div key={category}>
               <div style={{fontSize:"0.62rem",fontWeight:700,color:T.muted,letterSpacing:"0.1em",
@@ -1917,67 +2233,12 @@ function TrackerApp({ user, onLogout }) {
           ))}
         </div>
         )}
-
-        {/* ── Plans Tab ── */}
-        {dashTab==="plans"&&(
-        <div style={{animation:"fadeUp 0.3s ease both"}}>
-          <PlansTab/>
-        </div>
-        )}
-
       </div>
 
       {editingName&&<EditNameModal/>}
       {logoutConfirm&&<LogoutModal/>}
       {showTutorial&&<TutorialOverlay onClose={()=>setShowTutorial(false)} username={user.username}/>}
-
-      {/* Upgrade Modal */}
-      {showUpgrade&&(
-        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowUpgrade(false);}}>
-          <div style={{background:T.card,borderRadius:22,padding:"24px 22px 22px",width:"100%",maxWidth:380,
-            border:`1.5px solid ${T.border}`,
-            boxShadow:`0 24px 64px ${dm?"rgba(0,0,0,0.6)":"rgba(0,0,0,0.15)"}`,
-            animation:"scaleIn 0.18s ease",transition:"background 0.25s,border-color 0.25s",textAlign:"center"}}>
-            <div style={{fontSize:"2rem",marginBottom:8}}>🚀</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:"1.05rem",
-              color:T.primary,marginBottom:6}}>This is a Pro Feature</div>
-            <div style={{fontSize:"0.76rem",color:T.secondary,lineHeight:1.6,marginBottom:16}}>
-              Upgrade to <strong style={{color:"#b45309"}}>Pro</strong> to unlock revision notes, filters, streak heatmap, cloud sync, and more.
-            </div>
-            {[
-              {label:"📝 Revision Notes",desc:"Write notes, mnemonics & case laws per chapter"},
-              {label:"🔍 Search & Filters",desc:"Filter by status, priority & class attendance"},
-              {label:"🔥 Study Streak",desc:"Heatmap of your daily study activity"},
-              {label:"☁️ Cloud Sync",desc:"Access your tracker from any device"},
-            ].map(f=>(
-              <div key={f.label} style={{display:"flex",gap:10,alignItems:"flex-start",
-                padding:"7px 10px",borderRadius:9,marginBottom:5,
-                background:dm?"rgba(255,255,255,0.03)":"#f7f4ef",
-                border:`1px solid ${T.border}`,textAlign:"left"}}>
-                <span style={{fontSize:"0.82rem",marginTop:1}}>{f.label.split(" ")[0]}</span>
-                <div>
-                  <div style={{fontSize:"0.72rem",fontWeight:600,color:T.primary}}>{f.label.slice(f.label.indexOf(" ")+1)}</div>
-                  <div style={{fontSize:"0.65rem",color:T.muted,lineHeight:1.4}}>{f.desc}</div>
-                </div>
-              </div>
-            ))}
-            <div style={{marginTop:14,display:"flex",flexDirection:"column",gap:8}}>
-              <a href="https://rzp.io/rzp/kTwIuQX" target="_blank" rel="noopener noreferrer"
-                style={{display:"block",padding:"13px",background:"#b45309",color:"#fff",border:"none",
-                  borderRadius:12,fontWeight:700,fontSize:"0.88rem",textDecoration:"none",
-                  boxShadow:"0 3px 14px rgba(180,83,9,0.35)",fontFamily:"'DM Sans',sans-serif"}}>
-                Upgrade to Pro — ₹199 →
-              </a>
-              <button onClick={()=>setShowUpgrade(false)}
-                style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
-                  borderRadius:12,padding:"10px",cursor:"pointer",fontSize:"0.82rem",
-                  fontFamily:"'DM Sans',sans-serif"}}>
-                Maybe later
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {showPlanModal&&<SubscriptionModal onClose={()=>setShowPlanModal(false)}/>}
     </div>
   );
 
@@ -2027,61 +2288,71 @@ function TrackerApp({ user, onLogout }) {
                 style={{background:s.bg,color:s.c,border:`1px solid ${s.border}`,borderRadius:20,
                   padding:"3px 10px",fontSize:"0.66rem",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
                 {s.l}</button>
-              <button onClick={()=>setTopic(id,{priority:PRI_SEQ[(PRI_SEQ.indexOf(state.priority||"medium")+1)%3]})}
-                style={{background:p.bg,color:p.c,border:`1px solid ${p.border}`,borderRadius:20,
-                  padding:"3px 10px",fontSize:"0.66rem",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
-                {p.l}</button>
-              <button onClick={()=>{
-                  if(!isPro){setShowUpgrade(true);return;}
-                  setNoteModal(id);setNoteText(state.note||"");
-                }}
-                style={{background:state.note&&isPro?(dm?subject.color+"22":subject.light):T.btn,
-                  color:state.note&&isPro?subject.text:isPro?T.muted:"#b45309",
-                  border:`1px solid ${state.note&&isPro?subject.color+"35":isPro?T.borderBtn:"#fde68a"}`,
-                  borderRadius:20,padding:"3px 10px",fontSize:"0.66rem",cursor:"pointer",transition:"all 0.15s"}}>
-                {isPro?(state.note?"📝 Note":"+ Note"):"🔒 Notes"}</button>
-              <button onClick={()=>{
-                  if(!isPro){setShowUpgrade(true);return;}
-                  setTopic(id,{classAttended:!state.classAttended});
-                }}
-                style={{background:state.classAttended&&isPro?(dm?"rgba(16,185,129,0.18)":"#ecfdf5"):T.btn,
-                  color:state.classAttended&&isPro?"#047857":isPro?T.muted:"#b45309",
-                  border:`1px solid ${state.classAttended&&isPro?(dm?"rgba(16,185,129,0.4)":"#a7f3d0"):isPro?T.borderBtn:"#fde68a"}`,
-                  borderRadius:20,padding:"3px 10px",fontSize:"0.66rem",cursor:"pointer",transition:"all 0.15s",
-                  fontWeight:state.classAttended&&isPro?600:400}}>
-                {isPro?(state.classAttended?"🎓 Class ✓":"🎓 Class"):"🔒 Class"}</button>
-              <div style={{display:"flex",gap:4,marginLeft:1}}>
-                {["r1","r2","r3"].map((rk,ri)=>{
-                  const on = !!state[rk];
-                  const t = RTOGGLE[ri];
-                  const handleRev = () => {
-                    const newOn = !on;
-                    const patch = {[rk]: newOn};
-                    if (newOn) {
-                      if (rk==="r3") { patch.status = "done"; }
-                      else { if (state.status === "pending") patch.status = "inprogress"; }
-                    } else {
-                      if (rk==="r3") { patch.status = (state.r1 || state.r2) ? "inprogress" : "pending"; }
-                    }
-                    setTopic(id, patch);
-                  };
-                  return (
-                    <button key={rk} onClick={handleRev}
-                      title={`Revision ${ri+1} ${on?"complete":"pending"}`}
-                      style={{
-                        background:on?t.onBg:T.btn,
-                        color:on?t.on:dm?"#3d3a37":"#c4bdb7",
-                        border:`1.5px solid ${on?t.onBorder:T.borderBtn}`,
-                        borderRadius:7,padding:"3px 8px",fontSize:"0.63rem",fontWeight:700,
-                        cursor:"pointer",letterSpacing:"0.04em",
-                        transition:"all 0.17s ease",
-                        boxShadow:on?`0 1px 4px ${t.onBorder}`:"none",
-                      }}>
-                      {on?"✓ ":""}R{ri+1}
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Priority flag — Elite+ */}
+              {planHas(plan,"priority")
+                ? <button onClick={()=>setTopic(id,{priority:PRI_SEQ[(PRI_SEQ.indexOf(state.priority||"medium")+1)%3]})}
+                    style={{background:p.bg,color:p.c,border:`1px solid ${p.border}`,borderRadius:20,
+                      padding:"3px 10px",fontSize:"0.66rem",fontWeight:600,cursor:"pointer",transition:"all 0.15s"}}>
+                    {p.l}</button>
+                : <LockedBtn label="Priority" planNeeded="elite"/>
+              }
+              {/* Notes — Pro+ */}
+              {planHas(plan,"notes")
+                ? <button onClick={()=>{setNoteModal(id);setNoteText(state.note||"");}}
+                    style={{background:state.note?(dm?subject.color+"22":subject.light):T.btn,
+                      color:state.note?subject.text:T.muted,
+                      border:`1px solid ${state.note?subject.color+"35":T.borderBtn}`,
+                      borderRadius:20,padding:"3px 10px",fontSize:"0.66rem",cursor:"pointer",transition:"all 0.15s"}}>
+                    {state.note?"📝 Note":"+ Note"}</button>
+                : <LockedBtn label="Note" planNeeded="pro"/>
+              }
+              {/* Class attendance — Pro+ */}
+              {planHas(plan,"classAttend")
+                ? <button onClick={()=>setTopic(id,{classAttended:!state.classAttended})}
+                    style={{background:state.classAttended?(dm?"rgba(16,185,129,0.18)":"#ecfdf5"):T.btn,
+                      color:state.classAttended?"#047857":T.muted,
+                      border:`1px solid ${state.classAttended?(dm?"rgba(16,185,129,0.4)":"#a7f3d0"):T.borderBtn}`,
+                      borderRadius:20,padding:"3px 10px",fontSize:"0.66rem",cursor:"pointer",transition:"all 0.15s",
+                      fontWeight:state.classAttended?600:400}}>
+                    {state.classAttended?"🎓 Class ✓":"🎓 Class"}</button>
+                : <LockedBtn label="Class" planNeeded="pro"/>
+              }
+              {/* R1/R2/R3 — Elite+ */}
+              {planHas(plan,"revisions")
+                ? <div style={{display:"flex",gap:4,marginLeft:1}}>
+                    {["r1","r2","r3"].map((rk,ri)=>{
+                      const on = !!state[rk];
+                      const t = RTOGGLE[ri];
+                      const handleRev = () => {
+                        const newOn = !on;
+                        const patch = {[rk]: newOn};
+                        if (newOn) {
+                          if (rk==="r3") { patch.status = "done"; }
+                          else { if (state.status === "pending") patch.status = "inprogress"; }
+                        } else {
+                          if (rk==="r3") { patch.status = (state.r1 || state.r2) ? "inprogress" : "pending"; }
+                        }
+                        setTopic(id, patch);
+                      };
+                      return (
+                        <button key={rk} onClick={handleRev}
+                          title={`Revision ${ri+1} ${on?"complete":"pending"}`}
+                          style={{
+                            background:on?t.onBg:T.btn,
+                            color:on?t.on:dm?"#3d3a37":"#c4bdb7",
+                            border:`1.5px solid ${on?t.onBorder:T.borderBtn}`,
+                            borderRadius:7,padding:"3px 8px",fontSize:"0.63rem",fontWeight:700,
+                            cursor:"pointer",letterSpacing:"0.04em",
+                            transition:"all 0.17s ease",
+                            boxShadow:on?`0 1px 4px ${t.onBorder}`:"none",
+                          }}>
+                          {on?"✓ ":""}R{ri+1}
+                        </button>
+                      );
+                    })}
+                  </div>
+                : <LockedBtn label="R1 R2 R3" planNeeded="elite"/>
+              }
             </div>
           )}
 
@@ -2104,6 +2375,7 @@ function TrackerApp({ user, onLogout }) {
   });
 
   const renderAdd = sKey => (
+    planHas(plan,"reorder") ? (
     <div style={{display:"flex",gap:8,marginTop:6,marginBottom:10}}>
       <input value={addInputs[sKey]||""}
         onChange={e=>setAddInputs(a=>({...a,[sKey]:e.target.value}))}
@@ -2116,6 +2388,16 @@ function TrackerApp({ user, onLogout }) {
           padding:"9px 16px",fontSize:"0.78rem",cursor:"pointer",fontWeight:700,
           whiteSpace:"nowrap",boxShadow:`0 2px 8px ${subject.color}45`}}>+ Add</button>
     </div>
+    ) : (
+    <div onClick={openUpgrade} style={{display:"flex",alignItems:"center",gap:8,marginTop:6,marginBottom:10,
+      background:T.card2,border:`1.5px dashed ${T.borderDashed}`,borderRadius:10,padding:"9px 13px",
+      cursor:"pointer",opacity:0.7,transition:"opacity 0.15s"}}
+      onMouseOver={e=>e.currentTarget.style.opacity="1"} onMouseOut={e=>e.currentTarget.style.opacity="0.7"}>
+      <span style={{fontSize:"0.79rem",color:T.muted}}>🔒 Add custom chapters…</span>
+      <span style={{marginLeft:"auto",background:"#fffbeb",color:"#b45309",border:"1px solid #fde68a",
+        borderRadius:20,padding:"2px 8px",fontSize:"0.6rem",fontWeight:700,flexShrink:0}}>Supreme ↑</span>
+    </div>
+    )
   );
 
   return (
@@ -2139,12 +2421,27 @@ function TrackerApp({ user, onLogout }) {
             {/* Dark toggle in subject view */}
             <DarkToggle/>
             <button className="tut-help-btn" onClick={()=>setShowTutorial(true)} title="Open Tutorial">❓</button>
-            <button onClick={()=>{setReorderMode(r=>!r);setFilter("all");setFilterPri("all");setFilterClass("all");}}
+            {/* Plan badge in subject header */}
+            <button onClick={()=>setShowPlanModal(true)}
+              title="Manage Plan"
+              style={{display:"flex",alignItems:"center",gap:3,
+                background:plan==="supreme"?(dm?"rgba(180,83,9,0.15)":"#fffbeb"):T.btn,
+                color:plan==="free"?"#9ca3af":plan==="pro"?"#2563eb":plan==="elite"?"#7c3aed":"#b45309",
+                border:`1.5px solid ${T.borderBtn}`,
+                borderRadius:8,padding:"5px 10px",fontSize:"0.65rem",cursor:"pointer",fontWeight:700}}>
+              {plan==="free"?"📖":plan==="pro"?"⚡":plan==="elite"?"🏆":"👑"}
+            </button>
+            <button
               style={{background:reorderMode?subject.color:T.btn,
                 color:reorderMode?"#fff":T.secondary,
                 border:reorderMode?"none":`1.5px solid ${T.borderBtn}`,
-                borderRadius:8,padding:"5px 14px",fontSize:"0.72rem",cursor:"pointer",fontWeight:600}}>
-              {reorderMode?"✓ Done":"⇅ Reorder"}</button>
+                borderRadius:8,padding:"5px 14px",fontSize:"0.72rem",cursor:"pointer",fontWeight:600,
+                opacity:planHas(plan,"reorder")?1:0.55}}
+              onClick={()=>{
+                if(!planHas(plan,"reorder")){openUpgrade();return;}
+                setReorderMode(r=>!r);setFilter("all");setFilterPri("all");setFilterClass("all");
+              }}>
+              {reorderMode?"✓ Done":`⇅ Reorder${planHas(plan,"reorder")?"":" 🔒"}`}</button>
           </div>
         </div>
 
@@ -2161,24 +2458,37 @@ function TrackerApp({ user, onLogout }) {
         </div>
       </div>
 
+      {/* IBS Resource Link Banner */}
+      {subject.resourceLink&&(
+        <a href={subject.resourceLink.url} target="_blank" rel="noopener noreferrer"
+          style={{display:"flex",alignItems:"center",gap:12,
+            background:dm?"rgba(124,45,18,0.18)":"#fff7ed",
+            borderBottom:`1.5px solid ${dm?"rgba(154,52,18,0.4)":"#fed7aa"}`,
+            padding:"10px 16px",textDecoration:"none",transition:"background 0.18s"}}>
+          <div style={{width:32,height:32,borderRadius:8,flexShrink:0,
+            background:dm?"rgba(154,52,18,0.3)":"#ffedd5",
+            border:`1.5px solid ${dm?"rgba(154,52,18,0.5)":"#fdba74"}`,
+            display:"flex",alignItems:"center",justifyContent:"center",fontSize:"0.9rem"}}>
+            📄
+          </div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:"0.74rem",fontWeight:600,color:"#9a3412",
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+              {subject.resourceLink.label}
+            </div>
+            <div style={{fontSize:"0.6rem",color:dm?"#c2410c":"#b45309",marginTop:1,opacity:0.85}}>
+              icai.org · Tap to open ↗
+            </div>
+          </div>
+          <span style={{color:dm?"#c2410c":"#9a3412",fontSize:"0.8rem",flexShrink:0}}>↗</span>
+        </a>
+      )}
+
       {/* Filter bar */}
       {!reorderMode&&(
         <div style={{background:T.page,borderBottom:`1px solid ${T.border}`,padding:"8px 16px 8px",
           transition:"background 0.25s,border-color 0.25s"}}>
-          {!isPro&&(
-            <button onClick={()=>setShowUpgrade(true)}
-              style={{display:"flex",alignItems:"center",gap:7,width:"100%",marginBottom:6,
-                background:dm?"rgba(180,83,9,0.12)":"#fffbeb",border:"1px dashed #fde68a",
-                borderRadius:9,padding:"7px 12px",cursor:"pointer",textAlign:"left",
-                fontFamily:"'DM Sans',sans-serif"}}>
-              <span style={{fontSize:"0.8rem"}}>🔒</span>
-              <span style={{fontSize:"0.7rem",color:"#b45309",fontWeight:600}}>Filters are a Pro feature</span>
-              <span style={{marginLeft:"auto",fontSize:"0.64rem",color:"#b45309",fontWeight:700,
-                background:"#fde68a",borderRadius:20,padding:"2px 8px"}}>Upgrade →</span>
-            </button>
-          )}
-          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:6,paddingBottom:2,
-            opacity:isPro?1:0.4,pointerEvents:isPro?"auto":"none"}}>
+          <div style={{display:"flex",gap:5,overflowX:"auto",marginBottom:6,paddingBottom:2}}>
             <span style={{fontSize:"0.6rem",color:T.muted,fontWeight:600,
               letterSpacing:"0.08em",textTransform:"uppercase",
               alignSelf:"center",flexShrink:0,paddingRight:2}}>Status</span>
@@ -2195,12 +2505,11 @@ function TrackerApp({ user, onLogout }) {
               </button>
             ))}
           </div>
-          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,
-            opacity:isPro?1:0.4,pointerEvents:isPro?"auto":"none"}}>
+          <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2}}>
             <span style={{fontSize:"0.6rem",color:T.muted,fontWeight:600,
               letterSpacing:"0.08em",textTransform:"uppercase",
               alignSelf:"center",flexShrink:0,paddingRight:2}}>Priority</span>
-            {[
+            {planHas(plan,"advFilters") ? [
               ["all","All",T.subtle,T.card,T.borderBtn],
               ["high","🔴 High","#b91c1c","#fef2f2","#fecaca"],
               ["medium","🟡 Med","#92400e","#fffbeb","#fde68a"],
@@ -2219,13 +2528,20 @@ function TrackerApp({ user, onLogout }) {
                   {l}
                 </button>
               );
-            })}
+            }) : (
+              <button onClick={openUpgrade}
+                style={{background:"#f5f3ff",color:"#7c3aed",border:"1px solid #ddd6fe",
+                  borderRadius:20,padding:"4px 12px",fontSize:"0.68rem",cursor:"pointer",
+                  whiteSpace:"nowrap",fontWeight:500,flexShrink:0}}>
+                🔒 Priority Filter — Elite ↑
+              </button>
+            )}
           </div>
           <div style={{display:"flex",gap:5,overflowX:"auto",paddingBottom:2,marginTop:6}}>
             <span style={{fontSize:"0.6rem",color:T.muted,fontWeight:600,
               letterSpacing:"0.08em",textTransform:"uppercase",
               alignSelf:"center",flexShrink:0,paddingRight:2}}>Classes</span>
-            {[
+            {planHas(plan,"classAttend") ? [
               ["all","All",T.subtle,T.card,T.borderBtn],
               ["attended","🎓 Attended","#047857","#ecfdf5","#a7f3d0"],
               ["notyet","⏳ Not Yet","#b45309","#fffbeb","#fde68a"],
@@ -2243,7 +2559,14 @@ function TrackerApp({ user, onLogout }) {
                   {l}
                 </button>
               );
-            })}
+            }) : (
+              <button onClick={openUpgrade}
+                style={{background:"#eff6ff",color:"#2563eb",border:"1px solid #bfdbfe",
+                  borderRadius:20,padding:"4px 12px",fontSize:"0.68rem",cursor:"pointer",
+                  whiteSpace:"nowrap",fontWeight:500,flexShrink:0}}>
+                🔒 Class Filter — Pro ↑
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -2285,6 +2608,7 @@ function TrackerApp({ user, onLogout }) {
       {editingName&&<EditNameModal/>}
       {logoutConfirm&&<LogoutModal/>}
       {showTutorial&&<TutorialOverlay onClose={()=>setShowTutorial(false)} username={user.username}/>}
+      {showPlanModal&&<SubscriptionModal onClose={()=>setShowPlanModal(false)}/>}
 
       {/* Note Modal */}
       {noteModal&&(
@@ -2316,340 +2640,6 @@ function TrackerApp({ user, onLogout }) {
           </div>
         </div>
       )}
-
-      {/* Upgrade Modal (subject view) */}
-      {showUpgrade&&(
-        <div className="modal-bg" onClick={e=>{if(e.target===e.currentTarget)setShowUpgrade(false);}}>
-          <div style={{background:T.card,borderRadius:22,padding:"24px 22px 22px",width:"100%",maxWidth:380,
-            border:`1.5px solid ${T.border}`,
-            boxShadow:`0 24px 64px ${dm?"rgba(0,0,0,0.6)":"rgba(0,0,0,0.15)"}`,
-            animation:"scaleIn 0.18s ease",transition:"background 0.25s,border-color 0.25s",textAlign:"center"}}>
-            <div style={{fontSize:"2rem",marginBottom:8}}>🚀</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:"1.05rem",
-              color:T.primary,marginBottom:6}}>Upgrade to Pro</div>
-            <div style={{fontSize:"0.76rem",color:T.secondary,lineHeight:1.6,marginBottom:16}}>
-              This feature requires <strong style={{color:"#b45309"}}>Pro</strong> or above. Unlock notes, filters, streak heatmap and cloud sync.
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <a href="https://rzp.io/rzp/kTwIuQX" target="_blank" rel="noopener noreferrer"
-                style={{display:"block",padding:"13px",background:"#b45309",color:"#fff",border:"none",
-                  borderRadius:12,fontWeight:700,fontSize:"0.88rem",textDecoration:"none",
-                  boxShadow:"0 3px 14px rgba(180,83,9,0.35)",fontFamily:"'DM Sans',sans-serif"}}>
-                Upgrade to Pro — ₹199 →
-              </a>
-              <button onClick={()=>setShowUpgrade(false)}
-                style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
-                  borderRadius:12,padding:"10px",cursor:"pointer",fontSize:"0.82rem",
-                  fontFamily:"'DM Sans',sans-serif"}}>
-                Maybe later
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ──────────────────────────────────────────────────────────
-// PLAN SELECTION SCREEN
-// ──────────────────────────────────────────────────────────
-const PLAN_DEFS = [
-  {
-    key: "free",
-    name: "Free Trial",
-    emoji: "📖",
-    price: { monthly: "₹0", yearly: "₹0" },
-    period: "",
-    desc: "Get started with basic tracking.",
-    color: "#78716c",
-    features: [
-      "Track all 6 CA Final subjects",
-      "Basic chapter status (Pending / In Progress / Done)",
-      "Priority flags per chapter",
-      "Dashboard progress overview",
-    ],
-    locked: [
-      "Cloud sync across devices",
-      "Revision notes",
-      "Search & advanced filters",
-      "Study streak heatmap",
-    ],
-    btnLabel: "Start Free Trial",
-    btnStyle: "outline",
-    razorpay: null,
-  },
-  {
-    key: "pro",
-    name: "Pro",
-    emoji: "🚀",
-    price: { monthly: "₹199", yearly: "₹199" },
-    period: { monthly: " one-time", yearly: " one-time" },
-    desc: "Everything you need to ace CA Final — Nov '26 batch.",
-    color: "#b45309",
-    popular: true,
-    features: [
-      "Everything in Free Trial",
-      "☁️ Cloud sync across all devices",
-      "📝 Revision notes (unlimited)",
-      "🔍 Search & advanced filters",
-      "🔥 Study streak heatmap",
-      "🎓 Class attendance tracker",
-      "Priority support",
-    ],
-    locked: [],
-    btnLabel: "Subscribe to Pro",
-    btnStyle: "amber",
-    razorpay: {
-      monthly: "https://rzp.io/rzp/kTwIuQX",
-      yearly:  "https://rzp.io/rzp/kTwIuQX",
-    },
-  },
-  {
-    key: "premium",
-    name: "Premium",
-    emoji: "👑",
-    price: { monthly: "₹99", yearly: "₹1,000" },
-    period: { monthly: "/month", yearly: "/year" },
-    desc: "For the most serious CA aspirant.",
-    color: "#7C3AED",
-    features: [
-      "Everything in Pro",
-      "📊 Detailed subject analytics",
-      "🗂️ Custom chapter grouping",
-      "⚡ Early access to new features",
-      "24/7 Priority email support",
-    ],
-    locked: [],
-    btnLabel: "Subscribe to Premium",
-    btnStyle: "purple",
-    razorpay: {
-      monthly: "https://rzp.io/l/your-premium-monthly-link",
-      yearly:  "https://rzp.io/l/your-premium-yearly-link",
-    },
-  },
-];
-
-function PlanSelectionScreen({ user, onPlanActivated }) {
-  const {darkMode:dm} = useContext(ThemeContext);
-  const T = getT(dm);
-
-  const [billing, setBilling] = useState("monthly");
-  const [activatingPlan, setActivatingPlan] = useState(null); // plan key after Razorpay redirect
-  const [confirming, setConfirming] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const activatePlan = async (planKey) => {
-    setLoading(true);
-    try {
-      const existing = await sharedGet(`user:${user.username}`) || {};
-      const planRecord = {
-        key: planKey,
-        billing: planKey === "free" ? "free" : billing,
-        activatedAt: Date.now(),
-        activatedBy: user.username,
-      };
-      await sharedSet(`user:${user.username}`, { ...existing, plan: planRecord });
-      const updatedUser = { ...user, plan: planRecord };
-      sessionSet(updatedUser);
-      onPlanActivated(updatedUser);
-    } catch(e) {
-      console.error("Plan activation failed", e);
-    }
-    setLoading(false);
-  };
-
-  const handlePlanClick = (plan) => {
-    if (plan.key === "free") {
-      activatePlan("free");
-      return;
-    }
-    // For paid plans: open Razorpay then show confirmation
-    const link = plan.razorpay[billing];
-    window.open(link, "_blank");
-    setActivatingPlan(plan.key);
-    setConfirming(true);
-  };
-
-  const btnColors = {
-    outline: { bg: "transparent", color: T.primary, border: `1.5px solid ${T.borderBtn}`, shadow: "none" },
-    amber:   { bg: "#b45309", color: "#fff", border: "none", shadow: "0 4px 16px rgba(180,83,9,0.35)" },
-    purple:  { bg: "#7C3AED", color: "#fff", border: "none", shadow: "0 4px 16px rgba(124,58,237,0.35)" },
-  };
-
-  return (
-    <div style={{minHeight:"100vh",background:T.page,display:"flex",flexDirection:"column",
-      alignItems:"center",justifyContent:"flex-start",padding:"20px 16px 40px",
-      transition:"background 0.25s ease"}}>
-
-      <div style={{position:"fixed",top:16,right:16,zIndex:100}}>
-        <DarkToggle/>
-      </div>
-
-      {/* Header */}
-      <div style={{textAlign:"center",marginBottom:24,marginTop:16,maxWidth:480,width:"100%"}}>
-        <div style={{fontSize:"2rem",marginBottom:8}}>🎓</div>
-        <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.4rem",fontWeight:700,
-          color:T.primary,letterSpacing:"-0.4px",lineHeight:1.2,marginBottom:6}}>
-          Welcome, {user.name}!
-        </div>
-        <div style={{fontSize:"0.78rem",color:T.secondary,lineHeight:1.6,marginBottom:4}}>
-          Choose a plan to unlock your CA Final Study Tracker.
-        </div>
-        <div style={{fontSize:"0.66rem",color:T.muted}}>
-          Payments secured by Razorpay · Cancel anytime
-        </div>
-      </div>
-
-      {/* Billing toggle */}
-      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
-        <span style={{fontSize:"0.78rem",fontWeight:billing==="monthly"?600:400,
-          color:billing==="monthly"?T.primary:T.muted,transition:"all 0.15s"}}>Monthly</span>
-        <div onClick={()=>setBilling(b=>b==="monthly"?"yearly":"monthly")}
-          style={{width:44,height:24,borderRadius:24,cursor:"pointer",position:"relative",
-            background:billing==="yearly"?"#b45309":"#d6d3d1",transition:"background 0.2s",flexShrink:0}}>
-          <div style={{position:"absolute",top:3,left:billing==="yearly"?23:3,width:18,height:18,
-            borderRadius:"50%",background:"#fff",transition:"left 0.2s",
-            boxShadow:"0 1px 4px rgba(0,0,0,0.3)"}}/>
-        </div>
-        <span style={{fontSize:"0.78rem",fontWeight:billing==="yearly"?600:400,
-          color:billing==="yearly"?T.primary:T.muted,transition:"all 0.15s"}}>Yearly</span>
-        <span style={{fontSize:"0.64rem",background:dm?"rgba(180,83,9,0.22)":"#fffbeb",
-          color:"#b45309",border:"1px solid #fde68a55",borderRadius:20,
-          padding:"3px 9px",fontWeight:700}}>Save 33%</span>
-      </div>
-
-      {/* Plan cards */}
-      <div style={{display:"flex",flexDirection:"column",gap:12,width:"100%",maxWidth:480}}>
-        {PLAN_DEFS.map(plan=>{
-          const bc = btnColors[plan.btnStyle];
-          const isPopular = plan.popular;
-          return (
-            <div key={plan.key} style={{
-              background:T.card,
-              border:isPopular?`2px solid #b45309`:`1.5px solid ${T.border}`,
-              borderRadius:18,padding:"18px 18px 16px",
-              boxShadow:isPopular
-                ?`0 6px 28px ${dm?"rgba(180,83,9,0.25)":"rgba(180,83,9,0.13)"}`
-                :`0 1px 6px ${dm?"rgba(0,0,0,0.25)":"rgba(0,0,0,0.06)"}`,
-              position:"relative",
-              animation:"fadeUp 0.35s ease both",
-              transition:"background 0.25s,border-color 0.25s",
-            }}>
-              {isPopular&&(
-                <div style={{position:"absolute",top:-13,left:"50%",transform:"translateX(-50%)",
-                  background:"linear-gradient(90deg,#b45309,#92400e)",color:"#fff",
-                  fontSize:"0.64rem",fontWeight:700,padding:"4px 14px",borderRadius:20,
-                  whiteSpace:"nowrap",letterSpacing:"0.05em",boxShadow:"0 2px 8px rgba(180,83,9,0.4)"}}>
-                  ⭐ Most Popular
-                </div>
-              )}
-
-              {/* Plan header */}
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                <div>
-                  <div style={{display:"flex",alignItems:"center",gap:7,marginBottom:4}}>
-                    <span style={{fontSize:"1.25rem"}}>{plan.emoji}</span>
-                    <span style={{fontFamily:"'Playfair Display',serif",fontWeight:700,
-                      fontSize:"1rem",color:T.primary}}>{plan.name}</span>
-                    {isPopular&&(
-                      <span style={{fontSize:"0.6rem",background:dm?"rgba(180,83,9,0.2)":"#fffbeb",
-                        color:"#b45309",border:"1px solid #fde68a",borderRadius:20,
-                        padding:"2px 7px",fontWeight:600}}>Recommended</span>
-                    )}
-                  </div>
-                  <div style={{fontSize:"0.68rem",color:T.muted,lineHeight:1.4}}>{plan.desc}</div>
-                </div>
-                <div style={{textAlign:"right",flexShrink:0,marginLeft:12}}>
-                  <div style={{fontFamily:"'Playfair Display',serif",fontSize:"1.3rem",fontWeight:700,
-                    color:plan.color,lineHeight:1}}>
-                    {plan.price[billing]}
-                  </div>
-                  {plan.period&&(
-                    <div style={{fontSize:"0.62rem",color:T.muted,marginTop:2}}>{plan.period[billing]}</div>
-                  )}
-                </div>
-              </div>
-
-              {/* Features */}
-              <div style={{borderTop:`1px solid ${T.border}`,paddingTop:11,marginBottom:13}}>
-                {plan.features.map(f=>(
-                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
-                    <span style={{color:"#047857",fontSize:"0.78rem",flexShrink:0,marginTop:1}}>✓</span>
-                    <span style={{fontSize:"0.73rem",color:T.secondary,lineHeight:1.4}}>{f}</span>
-                  </div>
-                ))}
-                {plan.locked.map(f=>(
-                  <div key={f} style={{display:"flex",alignItems:"flex-start",gap:7,marginBottom:5}}>
-                    <span style={{color:T.borderBtn,fontSize:"0.78rem",flexShrink:0,marginTop:1}}>🔒</span>
-                    <span style={{fontSize:"0.73rem",color:T.muted,lineHeight:1.4,textDecoration:"line-through"}}>{f}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA button */}
-              <button onClick={()=>!loading&&handlePlanClick(plan)}
-                style={{width:"100%",padding:"12px",fontSize:"0.85rem",fontWeight:700,
-                  fontFamily:"'DM Sans',sans-serif",borderRadius:12,cursor:loading?"default":"pointer",
-                  background:loading?T.ctaLoading:bc.bg,color:bc.color,border:bc.border,
-                  boxShadow:bc.shadow,transition:"all 0.18s",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                {loading&&activatingPlan===plan.key
-                  ? <><div className="spinner" style={{borderTopColor:bc.color=="#fff"?"#fff":"#b45309"}}/> Activating…</>
-                  : plan.key==="free"
-                    ? plan.btnLabel
-                    : `${plan.btnLabel} — ${plan.price[billing]}${plan.period?.[billing]||""}`
-                }
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Payment confirmation modal */}
-      {confirming&&(
-        <div className="modal-bg">
-          <div style={{background:T.card,borderRadius:20,padding:24,width:"100%",maxWidth:380,
-            border:`1.5px solid ${T.border}`,boxShadow:`0 24px 64px ${dm?"rgba(0,0,0,0.6)":"rgba(0,0,0,0.15)"}`,
-            textAlign:"center",animation:"scaleIn 0.18s ease",transition:"background 0.25s"}}>
-            <div style={{fontSize:"2rem",marginBottom:10}}>💳</div>
-            <div style={{fontFamily:"'Playfair Display',serif",fontWeight:700,fontSize:"1rem",
-              color:T.primary,marginBottom:8}}>Complete your payment</div>
-            <div style={{fontSize:"0.76rem",color:T.secondary,lineHeight:1.6,marginBottom:6}}>
-              The Razorpay payment page has opened in a new tab. Once you've completed the payment, come back here and tap the button below.
-            </div>
-            <div style={{background:dm?"rgba(180,83,9,0.15)":"#fffbeb",border:"1px solid #fde68a",
-              borderRadius:10,padding:"9px 12px",marginBottom:18,fontSize:"0.7rem",color:"#78350f",lineHeight:1.5}}>
-              💡 Don't close this tab — your session is saved here.
-            </div>
-            <div style={{display:"flex",flexDirection:"column",gap:8}}>
-              <button onClick={()=>activatePlan(activatingPlan)}
-                disabled={loading}
-                style={{background:"#047857",color:"#fff",border:"none",borderRadius:12,
-                  padding:"13px",cursor:loading?"default":"pointer",fontWeight:700,fontSize:"0.88rem",
-                  fontFamily:"'DM Sans',sans-serif",boxShadow:"0 3px 12px rgba(4,120,87,0.35)",
-                  display:"flex",alignItems:"center",justifyContent:"center",gap:8,transition:"all 0.18s"}}>
-                {loading
-                  ? <><div className="spinner"/> Activating your plan…</>
-                  : "✓ I've Completed Payment — Activate Plan"}
-              </button>
-              <button onClick={()=>{setConfirming(false);setActivatingPlan(null);}}
-                style={{background:T.btn,color:T.muted,border:`1.5px solid ${T.borderBtn}`,
-                  borderRadius:12,padding:"11px",cursor:"pointer",fontSize:"0.82rem",
-                  fontFamily:"'DM Sans',sans-serif"}}>
-                ← Go Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Footer */}
-      <div style={{marginTop:24,textAlign:"center",fontSize:"0.64rem",color:T.muted,lineHeight:1.7,maxWidth:380}}>
-        🔒 Payments are processed securely by Razorpay.<br/>
-        Cancel anytime from your account.<br/>
-        <span style={{color:"#b45309",fontWeight:600}}>CA Final Tracker · by CA Avishi Gupta</span>
-      </div>
     </div>
   );
 }
@@ -2666,6 +2656,18 @@ function Root() {
     try { return localStorage.getItem('cafinal_dark') === 'true'; } catch(e) { return false; }
   });
 
+  // Plan state — per user, stored in localStorage
+  const [plan, setPlanState] = useState("free");
+  const [showPlanModal, setShowPlanModal] = useState(false);
+
+  const activatePlan = (planId) => {
+    setPlanState(planId);
+    if (currentUser) {
+      try { localStorage.setItem(`cafinal_plan:${currentUser.username}`, planId); } catch(e) {}
+    }
+  };
+  const openUpgrade = () => setShowPlanModal(true);
+
   const toggleDark = () => setDarkMode(d => !d);
 
   useEffect(() => {
@@ -2673,66 +2675,36 @@ function Root() {
     try { localStorage.setItem('cafinal_dark', darkMode); } catch(e) {}
   }, [darkMode]);
 
-  // On mount: restore session and check plan
   useEffect(() => {
     const sess = sessionGet();
     if (sess && sess.username && sess.name) {
       setCurrentUser(sess);
-      // If user has no plan stored, show plan selection; otherwise go straight to app
-      if (sess.plan && sess.plan.key) {
-        setAuthState("app");
-      } else {
-        // Re-check Firebase for plan (session may be stale)
-        sharedGet(`user:${sess.username}`).then(userData => {
-          if (userData && userData.plan && userData.plan.key) {
-            const updatedUser = { ...sess, plan: userData.plan };
-            sessionSet(updatedUser);
-            setCurrentUser(updatedUser);
-            setAuthState("app");
-          } else {
-            setAuthState("plan");
-          }
-        }).catch(() => setAuthState("plan"));
-      }
+      setAuthState("app");
+      // Load plan for this user
+      try {
+        const savedPlan = localStorage.getItem(`cafinal_plan:${sess.username}`) || 'free';
+        setPlanState(savedPlan);
+      } catch(e) {}
     } else {
       setAuthState("auth");
     }
   }, []);
 
-  const handleLogin = async (user) => {
-    // After login, check if this user already has a plan
-    try {
-      const userData = await sharedGet(`user:${user.username}`);
-      if (userData && userData.plan && userData.plan.key) {
-        const userWithPlan = { ...user, plan: userData.plan };
-        sessionSet(userWithPlan);
-        setCurrentUser(userWithPlan);
-        setAuthState("app");
-      } else {
-        sessionSet(user);
-        setCurrentUser(user);
-        setAuthState("plan");
-      }
-    } catch(e) {
-      sessionSet(user);
-      setCurrentUser(user);
-      setAuthState("plan");
-    }
-  };
-
-  const handlePlanActivated = (userWithPlan) => {
-    setCurrentUser(userWithPlan);
+  const handleLogin = user => {
+    sessionSet(user);
+    setCurrentUser(user);
     setAuthState("app");
+    try {
+      const savedPlan = localStorage.getItem(`cafinal_plan:${user.username}`) || 'free';
+      setPlanState(savedPlan);
+    } catch(e) {}
   };
-
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setAuthState("auth");
-  };
+  const handleLogout = () => { setCurrentUser(null); setPlanState("free"); setAuthState("auth"); };
 
   const T = getT(darkMode);
 
   if (authState==="checking") return (
+    <PlanContext.Provider value={{ plan, activatePlan, openUpgrade }}>
     <ThemeContext.Provider value={{ darkMode, toggleDark }}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"center",
         height:"100vh",background:T.page,flexDirection:"column",gap:12,transition:"background 0.25s"}}>
@@ -2741,17 +2713,19 @@ function Root() {
         <div style={{color:T.muted,fontSize:"0.8rem"}}>Loading…</div>
       </div>
     </ThemeContext.Provider>
+    </PlanContext.Provider>
   );
 
   return (
+    <PlanContext.Provider value={{ plan, activatePlan, openUpgrade }}>
     <ThemeContext.Provider value={{ darkMode, toggleDark }}>
       {authState==="auth"
         ? <AuthScreen onLogin={handleLogin}/>
-        : authState==="plan"
-          ? <PlanSelectionScreen user={currentUser} onPlanActivated={handlePlanActivated}/>
-          : <TrackerApp user={currentUser} onLogout={handleLogout}/>
+        : <TrackerApp user={currentUser} onLogout={handleLogout}/>
       }
+      {showPlanModal && <SubscriptionModal onClose={() => setShowPlanModal(false)} />}
     </ThemeContext.Provider>
+    </PlanContext.Provider>
   );
 }
 
